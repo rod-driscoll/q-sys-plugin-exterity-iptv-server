@@ -41,7 +41,8 @@ The files in "./DEV/" are for dev only and may not be the most current code, the
 * Not tested on hardware
 
 ## References
-Protocol can be found on any deployed Exterity server at <http://<server-ip>/docs>
+
+Protocol can be found on any deployed Exterity server at <http://server-ip/docs>
 
 ## Contributors
 
