@@ -1,8 +1,9 @@
- 	-----------------------------------------------------------------------------------------------------------------------
+ 
+	-----------------------------------------------------------------------------------------------------------------------
 	-- dependencies
 	-----------------------------------------------------------------------------------------------------------------------
 	rapidjson = require("rapidjson")
-
+  helper = require("Helpers")
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Variables
 	-----------------------------------------------------------------------------------------------------------------------
@@ -49,9 +50,12 @@
 	-- Device control functions
 	-----------------------------------------------------------------------------------------------------------------------
 
-	function UpdateDeviceControlDetails(data) -- selected device, data is a table of a single device
-		if DebugFunction then print('DEVICE ', '--------------------------------------') end
-		--TODO
+	function UpdateDeviceControlDetails(device) -- selected device, data is a table of a single device
+		if DebugFunction then print('DEVICE ', '--------------------------------------') end	
+    --[[ local keys_ = { 'id', 'type', 'ip', 'location', 'name', 'platform', 'state', 'mac', 'room', 'platform_name', 'lock_flag', 'status', 'flatMac', 'last_executed_command', 'jobs', 'content' }
+    Controls.DeviceDetails.Choices = helper.UpdateItemsInArray(device, keys_)  --this is an option to display less data ]]
+    --Controls.DeviceDetails.String = helper.UpdateItems(device)
+    Controls.DeviceDetails.String =  "string 1\nstring 2" 
 	end
 
 	function DoFunctionOnDevice(func, control_name, name)
@@ -192,10 +196,10 @@
 	function QueryAll()
 		if DebugFunction then print('Query all') end
 		for i=1, #devices do
-			--GetRequest("/devices/"..devices[i]['mac'])
+			GetRequest("/devices/"..devices[i]['mac'])
 		end
-		--GetRequest("/channels")
-    GetRequest("/devices")
+    Timer.CallAfter(function() GetRequest("/channels") end, 1) --wait 1 sec to avoid maximum execution
+		Timer.CallAfter(function() GetRequest("/playlists") end, 2) --wait 1 sec to avoid maximum execution 
 	end
 
 	function ParseResponse(json)
@@ -339,7 +343,24 @@
     initialize()
   end
 
-  Controls.DeviceNames.Choices = { "choice 1", "choices 2" }
+  Controls.DeviceNames.EventHandler = function(ctl)
+    if DebugFunction then print('device choice', ctl.String, ', num devices:', #devices) end
+    local kvp_  = { ['name'] = ctl.String }
+    local i,device_ = helper.GetArrayItemWithKey(devices, kvp_)
+    if device_ then
+      --print('device_ type:', type(device_))
+      UpdateDeviceControlDetails(device_) -- update 'Decoder_details'
+    end
+
+  end
+
+  Controls.PlaylistNames.EventHandler = function()
+
+  end
+
+  Controls.ChannelNames.EventHandler = function()
+
+  end
 	-----------------------------------------------------------------------------------------------------------------------
 	-- End of module
 	-----------------------------------------------------------------------------------------------------------------------
