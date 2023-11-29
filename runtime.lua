@@ -1,5 +1,4 @@
-
-	-----------------------------------------------------------------------------------------------------------------------
+ 	-----------------------------------------------------------------------------------------------------------------------
 	-- dependencies
 	-----------------------------------------------------------------------------------------------------------------------
 	rapidjson = require("rapidjson")
@@ -9,10 +8,9 @@
 	-----------------------------------------------------------------------------------------------------------------------
 	local SimulateFeedback = true
 	-- Variables and flags
-	DebugTx=false
-	DebugRx=false
-	DebugFunction=false
-	DebugPrint=Properties["Debug Print"].Value	
+	local DebugTx=false
+	local DebugRx=false
+	local DebugFunction=false
 
 	-- Timers, tables, and constants
 	QueryTimer = Timer.New()
@@ -28,6 +26,25 @@
 	function ErrorHandler(err)
     print('ERROR:', err)
  	end
+   
+	-----------------------------------------------------------------------------------------------------------------------
+  -- Helper functions
+	-------------------------------------------------------------------------------------------------------------------
+
+  -- A function to determine common print statement scenarios for troubleshooting
+  function SetupDebugPrint()
+    if Properties["Debug Print"].Value=="Tx/Rx" then
+      DebugTx,DebugRx=true,true
+    elseif Properties["Debug Print"].Value=="Tx" then
+      DebugTx=true
+    elseif Properties["Debug Print"].Value=="Rx" then
+      DebugRx=true
+    elseif Properties["Debug Print"].Value=="Function Calls" then
+      DebugFunction=true
+    elseif Properties["Debug Print"].Value=="All" then
+      DebugTx,DebugRx,DebugFunction=true,true,true
+    end
+  end
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Device control functions
 	-----------------------------------------------------------------------------------------------------------------------
@@ -76,17 +93,32 @@
 		if DebugFunction then print('UpateDeviceData()') end
 		--TODO
 	end
+
+  function UpdateDeviceNames(data)  -- data is an array of devices
+    local names_ = {}
+    for a,b in ipairs(data) do --iterate through devices and create a table of names to update Choices
+      if b['name'] then table.insert(names_, b['name']) end   
+      --[[ -- this is just for debugging
+      if b['name'] then  print('[1].name: ',b['name']) end
+      if b['ip'] then table.insert(uris_, b['ip']) end   
+      if b['mac'] then table.insert(macs_, b['mac']) end
+      for k,v in pairs(b) do
+        if a == 1 then print('['..a..']', k) end --print all keys
+      end ]]
+    end
+    Controls.DeviceNames.Choices = names_ 
+  end
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Parse devices
 	-----------------------------------------------------------------------------------------------------------------------
 
-	function ParseDevice(data)  -- data is a single device
-		if DebugFunction then print('device data response: '..data['name']) end
+	function ParseDevice(device)  -- data is a single device
+		if DebugFunction then print('device data response: '..device['name']) end
 		local found_ = false
 		for i=1, #devices do --each device
-			if devices[i]['id'] == data['id'] then
+			if devices[i]['id'] == device['id'] then
 				print('Updating data in device ['..i..']: '.. devices[i]['name'])
-				devices[i] = data -- replace data
+				devices[i] = device -- replace device
 				--CheckContent(devices[i]) -- this works
 				UpateDeviceData(i)
 				found_ = true
@@ -95,7 +127,7 @@
 		if not found_ then
 			table.insert(devices, data) 
 			UpdateDeviceNames(devices)
-			UpateDeviceData(#devices)
+			UpateDeviceData(#devices) -- update the last device
 		end
 	end
 
@@ -103,17 +135,6 @@
 		if DebugFunction then print('ParseDevices', #data.. ' devices found') end
 		devices = data
 		UpdateDeviceNames(devices)
-
-		-- update Choices in the device modules
-		if string.len(Controls.Decoder_script_name.String) < 1 then -- make sure the modules are assigned to devices
-			print('Decoder_script_name is empty, filling it with a default value')
-			--Controls.Decoder_script_name.String = "IPTV_Decoder_"
-		end
-		--[[ DON'T iterate through devices and assign devices, because it causes a maximum execution error
-		-- let it poll the devices one at a time so each device is assigned on a different task
-		for i=1, #data do --each device
-			UpateDeviceData(i)
-		end ]]
 	end
 
 	-----------------------------------------------------------------------------------------------------------------------
@@ -130,8 +151,16 @@
 				--print('['..a..']', 'name:', b['name'])
 				table.insert(names_, b['name'])
 			end   
-		end
-		--TODO
+		end  
+    Controls.ChannelNames.Choices = names_
+    for i=1, #devices do -- update channel list in the device modules
+      if Controls["ChannelSelect "..i]~=nil then -- if device component exists
+        Controls["ChannelSelect "..i].Choices = names_ -- update the device selector choices
+      end
+      if Controls["PowerOnChannel "..i]~=nil then -- if device component exists
+        Controls["PowerOnChannel "..i].Choices = names_ -- update the device selector choices
+      end
+    end
 	end
 
 	-----------------------------------------------------------------------------------------------------------------------
@@ -149,9 +178,12 @@
 				table.insert(names_, b['name'])
 			end   
 		end
-
-	--- TODO
-
+    Controls.PlaylistNames.Choices = names_
+    for i=1, #devices do -- update list in the device modules
+      if Controls['PlaylistSelect '..i]~=nil then
+        Controls['PlaylistSelect '..i].Choices = names_ -- update the device selector choices
+      end
+    end
 	end
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Parse initial response
@@ -160,9 +192,10 @@
 	function QueryAll()
 		if DebugFunction then print('Query all') end
 		for i=1, #devices do
-			GetRequest("/devices/"..devices[i]['mac'])
+			--GetRequest("/devices/"..devices[i]['mac'])
 		end
-		GetRequest("/channels")
+		--GetRequest("/channels")
+    GetRequest("/devices")
 	end
 
 	function ParseResponse(json)
@@ -214,7 +247,7 @@
 			--ResponseText.String = data
 			ParseResponse(data)
 
-		elseif code == 401.0 or IPAddress.String == "" then  -- Invalid Address handler
+		elseif code == 401.0 or Controls.IPAddress.String == "" then  -- Invalid Address handler
 			ReportStatus("MISSING", "Check TCP connection properties") 
 
 		else   -- Other error cases
@@ -243,8 +276,8 @@
 			Url          = url,
 			Method       = "GET",
 			Headers      = headers,
-			User         = Controls["Username"].String,  -- Only needed if device requires a sign in
-			Password     = Controls["Password"].String,  -- Only needed if device requires a sign in
+			User         = Controls["Username"].String or "",  -- Only needed if device requires a sign in
+			Password     = Controls["Password"].String or "",  -- Only needed if device requires a sign in
 			Timeout      = RequestTimeout,
 			EventHandler = ResponseHandler
 		})
@@ -283,9 +316,10 @@
 	-------------------------------------------------------------------------------
 
 	function initialize()
+  	SetupDebugPrint()
 		if DebugFunction then print("initialize() Called") end
 		--ClearDevices() -- only do this if you want to reset all the modules
-		if Controls.IPAddress.String then
+    if Controls.IPAddress.String~=nil and string.len(Controls.IPAddress.String)>0 and not QueryTimer:IsRunning() then
 			GetRequest("/devices")
 			Timer.CallAfter(function() GetRequest("/channels") end, 1) --wait 1 sec to avoid maximum execution
 			Timer.CallAfter(function() GetRequest("/playlists") end, 2) --wait 1 sec to avoid maximum execution
@@ -301,7 +335,11 @@
 	-----------------------------------------------------------------------------------------------------------------------
 	-- EventHandlers
 	-----------------------------------------------------------------------------------------------------------------------
+  Controls.IPAddress.EventHandler = function()
+    initialize()
+  end
 
+  Controls.DeviceNames.Choices = { "choice 1", "choices 2" }
 	-----------------------------------------------------------------------------------------------------------------------
 	-- End of module
 	-----------------------------------------------------------------------------------------------------------------------

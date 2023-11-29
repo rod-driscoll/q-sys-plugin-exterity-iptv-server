@@ -70,7 +70,7 @@ table.insert(ctrls, {
 table.insert(ctrls, {
   Name         = "DeviceDetails",
   ControlType  = "Text",
-  Style        = "ComboBox",
+  Style        = "ListBox",
   PinStyle     = "Output",
   UserPin      = true,
   Count        = 1
@@ -78,7 +78,7 @@ table.insert(ctrls, {
 table.insert(ctrls, {
   Name         = "ChannelDetails",
   ControlType  = "Text",
-  Style        = "ComboBox",
+  Style        = "ListBox",
   PinStyle     = "Output",
   UserPin      = true,
   Count        = 1
@@ -86,7 +86,7 @@ table.insert(ctrls, {
 table.insert(ctrls, {
   Name         = "PlaylistDetails",
   ControlType  = "Text",
-  Style        = "ComboBox",
+  Style        = "ListBox",
   PinStyle     = "Output",
   UserPin      = true,
   Count        = 1
@@ -97,7 +97,6 @@ table.insert(ctrls, {
   Name         = "DeviceSelect",
   ControlType  = "Text",
   Style        = "ComboBox",
-  PinStyle     = "Toggle",
   PinStyle     = "Output",
   UserPin      = true,
   Count        = props['Display Count'].Value
@@ -106,7 +105,6 @@ table.insert(ctrls, {
   Name         = "ChannelSelect",
   ControlType  = "Text",
   Style        = "ComboBox",
-  PinStyle     = "Toggle",
   PinStyle     = "Output",
   UserPin      = true,
   Count        = props['Display Count'].Value
@@ -115,8 +113,104 @@ table.insert(ctrls, {
   Name         = "PlaylistSelect",
   ControlType  = "Text",
   Style        = "ComboBox",
-  PinStyle     = "Toggle",
   PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "PowerOnChannel",
+  ControlType  = "Text",
+  Style        = "ComboBox",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "DeviceDetails",
+  ControlType  = "Text",
+  Style        = "ListBox",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "CurrentContent",
+  ControlType  = "Indicator",
+  IndicatorType= "Text",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "MACAddress",
+  ControlType  = "Indicator",
+  IndicatorType= "Text",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "Address",
+  ControlType  = "Indicator",
+  IndicatorType= "Text",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "Platform",
+  ControlType  = "Indicator",
+  IndicatorType= "Text",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "Online",
+  ControlType  = "Indicator",
+  IndicatorType= "Led",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "Enabledisplay",
+  ControlType  = "Indicator",
+  IndicatorType= "Led",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "HasDecoder",
+  ControlType  = "Indicator",
+  IndicatorType= "Led",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+
+table.insert(ctrls, {
+  Name         = "PowerOn",
+  ControlType  = "Button",
+  ButtonType   = "Toggle",
+  PinStyle     = "Both",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "PowerOff",
+  ControlType  = "Button",
+  ButtonType   = "Toggle",
+  PinStyle     = "Both",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "PowerToggle",
+  ControlType  = "Button",
+  ButtonType   = "Toggle",
+  PinStyle     = "Both",
   UserPin      = true,
   Count        = props['Display Count'].Value
 })
