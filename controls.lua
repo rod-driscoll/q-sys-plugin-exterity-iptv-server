@@ -13,7 +13,7 @@ table.insert(ctrls, {
   Count        = 1,
   DefaultValue = "Enter an IP Address",
   UserPin      = true,
-  PinStyle     = "Both"
+  PinStyle     = "Input"
 })
 table.insert(ctrls, {
   Name         = "Username",
@@ -21,7 +21,7 @@ table.insert(ctrls, {
   DefaultValue = "admin",
   Count        = 1,
   UserPin      = true,
-  PinStyle     = "Both"
+  PinStyle     = "Input"
 })
 table.insert(ctrls, {
   Name         = "Password",
@@ -29,7 +29,7 @@ table.insert(ctrls, {
   DefaultValue = "",
   Count        = 1,
   UserPin      = true,
-  PinStyle     = "Both"
+  PinStyle     = "Input"
 })
 
 -- Status Controls --
@@ -47,7 +47,7 @@ table.insert(ctrls, {
   Name         = "DeviceNames",
   ControlType  = "Text",
   Style        = "ComboBox",
-  PinStyle     = "Output",
+  PinStyle     = "Both",
   UserPin      = true,
   Count        = 1
 })
@@ -55,7 +55,7 @@ table.insert(ctrls, {
   Name         = "ChannelNames",
   ControlType  = "Text",
   Style        = "ComboBox",
-  PinStyle     = "Output",
+  PinStyle     = "Both",
   UserPin      = true,
   Count        = 1
 })
@@ -63,7 +63,7 @@ table.insert(ctrls, {
   Name         = "PlaylistNames",
   ControlType  = "Text",
   Style        = "ComboBox",
-  PinStyle     = "Output",
+  PinStyle     = "Both",
   UserPin      = true,
   Count        = 1
 })
@@ -97,7 +97,7 @@ table.insert(ctrls, {
   Name         = "DeviceSelect",
   ControlType  = "Text",
   Style        = "ComboBox",
-  PinStyle     = "Output",
+  PinStyle     = "Both",
   UserPin      = true,
   Count        = props['Display Count'].Value
 })
@@ -105,7 +105,7 @@ table.insert(ctrls, {
   Name         = "ChannelSelect",
   ControlType  = "Text",
   Style        = "ComboBox",
-  PinStyle     = "Output",
+  PinStyle     = "Both",
   UserPin      = true,
   Count        = props['Display Count'].Value
 })
@@ -113,7 +113,7 @@ table.insert(ctrls, {
   Name         = "PlaylistSelect",
   ControlType  = "Text",
   Style        = "ComboBox",
-  PinStyle     = "Output",
+  PinStyle     = "Both",
   UserPin      = true,
   Count        = props['Display Count'].Value
 })
@@ -121,12 +121,12 @@ table.insert(ctrls, {
   Name         = "PowerOnChannel",
   ControlType  = "Text",
   Style        = "ComboBox",
-  PinStyle     = "Output",
+  PinStyle     = "Both",
   UserPin      = true,
   Count        = props['Display Count'].Value
 })
 table.insert(ctrls, {
-  Name         = "DeviceDetails",
+  Name         = "Details",
   ControlType  = "Text",
   Style        = "ListBox",
   PinStyle     = "Output",

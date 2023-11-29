@@ -50,12 +50,11 @@
 	-- Device control functions
 	-----------------------------------------------------------------------------------------------------------------------
 
-	function UpdateDeviceControlDetails(device) -- selected device, data is a table of a single device
+	function UpdateDeviceControlDetails(device) -- selected device, a table of a single device
 		if DebugFunction then print('DEVICE ', '--------------------------------------') end	
     --[[ local keys_ = { 'id', 'type', 'ip', 'location', 'name', 'platform', 'state', 'mac', 'room', 'platform_name', 'lock_flag', 'status', 'flatMac', 'last_executed_command', 'jobs', 'content' }
-    Controls.DeviceDetails.Choices = helper.UpdateItemsInArray(device, keys_)  --this is an option to display less data ]]
-    --Controls.DeviceDetails.String = helper.UpdateItems(device)
-    Controls.DeviceDetails.String =  "string 1\nstring 2" 
+    --Controls.DeviceDetails.Choices = helper.UpdateItemsInArray(device, keys_)  --this is an option to display less data ]]
+    Controls.DeviceDetails.Choices = helper.UpdateItems(device)
 	end
 
 	function DoFunctionOnDevice(func, control_name, name)
@@ -167,6 +166,13 @@
     end
 	end
 
+  function UpdateChannelControlDetails(channel)
+    if DebugFunction then print('CHANNEL --------------------------------------') end
+    --[[ this is an option to display less data
+    local keys_ = { 'name', 'uri', 'group', 'icon', 'channelid', 'address', 'stream', 'redundancy', 'groups', 'type', 'source', 'interface', 'bandwidth', 'language', 'definition', 'number' }
+    Controls.Channel_details.Choices = helper..UpdateItemsInArray(channel, keys_)  --this is an option to display less data ]]
+    Controls.ChannelDetails.Choices = helper.UpdateItems(channel)
+  end
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Parse Playlists
 	-----------------------------------------------------------------------------------------------------------------------
@@ -189,6 +195,11 @@
       end
     end
 	end
+  
+  function UpdatePlaylistControlDetails(playlist)
+    if DebugFunction then print('PLAYLIST --------------------------------------') end
+    Controls.PlaylistDetails.Choices = helper.UpdateItems(playlist)
+  end
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Parse initial response
 	-----------------------------------------------------------------------------------------------------------------------
@@ -354,12 +365,24 @@
 
   end
 
-  Controls.PlaylistNames.EventHandler = function()
-
+  Controls.PlaylistNames.EventHandler = function(ctl)
+    if DebugFunction then print('playlist choice', ctl.String, ', num playlists:', #playlists) end
+    local kvp_  = { ['name'] = ctl.String }
+    local i,playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
+    if playlist_ then
+      --print('playlist_ type:', type(playlist_))
+      UpdatePlaylistControlDetails(playlist_)
+    end
   end
 
-  Controls.ChannelNames.EventHandler = function()
-
+  Controls.ChannelNames.EventHandler = function(ctl) 
+    if DebugFunction then print('channel choice', ctl.String, ', num channels:', #channels) end
+    local kvp_  = { ['name'] = ctl.String }
+    local i,channel_ = helper.GetArrayItemWithKey(channels, kvp_)
+    if channel_ then
+      --print('channel_ type:', type(channel_))
+      UpdateChannelControlDetails(channel_)-- update 'Channel_details'
+    end
   end
 	-----------------------------------------------------------------------------------------------------------------------
 	-- End of module
