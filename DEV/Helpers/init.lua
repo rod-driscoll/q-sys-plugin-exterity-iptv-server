@@ -15,9 +15,9 @@ obj.TablePrint = function(tbl, indent)
     if not indent then indent = 0 end 
     --print('TablePrint type.'..type(tbl))
     
-    local function LinePrint(k,v)
+    local function LinePrint(k,v,indent)
         --print('LinePrint - type.'..type(v))
-        formatting = string.rep("  ", indent) .. k .. ": "
+        local formatting = string.rep("  ", indent) .. k .. ": "
         if type(v) == "table" then
             print(formatting)
             obj.TablePrint(v, indent+1)
@@ -30,7 +30,7 @@ obj.TablePrint = function(tbl, indent)
     end
     
     if type(tbl) == "table" then
-        for k, v in pairs(tbl) do LinePrint(k,v) end
+        for k, v in pairs(tbl) do LinePrint(k,v,indent) end
     elseif type(tbl) == "userdata" then
         --for k, v in ipairs(tbl) do LinePrint(k,v) end
         --print(table.concat)
@@ -44,6 +44,67 @@ obj.TablePrint = function(tbl, indent)
         print('TablePrint Type.'..type(tbl))
     end
 end
+
+obj.UpdateItems = function(tbl, indent) -- this will print the whole array to a table
+    print('UpdateItems() started -----------------------------------------------------')
+    local table_ = {}
+    if not indent then indent = 0 end 
+
+    local function update(tbl, indent)
+
+        local function linePrint(k,v,indent)
+            --print('LinePrint - type.'..type(v))
+            local formatting = string.rep("  ", indent) .. k .. ": "
+            if type(v) == "table" then
+                table.insert(table_, formatting)
+                update(v, indent+1)
+            elseif type(v) == 'string' or type(v) == 'boolean' or type(v) == 'number' then
+                table.insert(table_, formatting .. tostring(v))
+            --elseif type(v) == 'userdata' then
+            else
+                table.insert(table_, formatting .. 'Type.'..type(v))
+            end
+        end
+        
+        -- update() starts here
+        if type(tbl) == "table" then
+            for k, v in pairs(tbl) do linePrint(k,v,indent) end
+        elseif type(tbl) == "userdata" then
+            --for k, v in ipairs(tbl) do linePrint(k,v) end
+            --print(table.concat)
+            pcall(function() table.insert(table_, tostring(tbl)) for k, v in pairs(tbl) do linePrint(k,v) end end)
+            --print('33 TablePrint type.'..type(tbl))
+            --pcall(function() for k, v in ipairs(tbl) do linePrint(k,v) end end)
+            --print('35 TablePrint type.'..type(tbl))
+        elseif type(tbl) == "string" then
+            linePrint('Type.'..type(tbl), tbl)
+        else
+            table.insert(table_, 'TablePrint Type.'..type(tbl))
+        end
+    end
+    
+    update(tbl, indent)
+    print('UpdateItems() finished -----------------------------------------------------')
+    obj.TablePrint(table_)
+    return table_
+end
+--[[
+obj.UpdateItems = function(data)  -- this will print the whole array to a table
+    local table_ = {}
+    for k,v in pairs(data) do
+        local str_ = ""
+        if type(v) == "string" then
+            str_ = k..': '..v               -- 'status: online'
+        else
+            str_ = k..': Type.'..type(v)  -- 'status: Type.function'
+        end
+        --print(str_)
+        table.insert(table_, str_)
+    end
+    --print('-----------------------------------------------------')
+    return table_
+end
+]]
 
 obj.dump = function(o)
     --print('object type: ', type(o))
@@ -108,7 +169,7 @@ obj.Copy = function(obj, seen)
     local s = seen or {}
     local res = setmetatable({}, getmetatable(obj))
     s[obj] = res
-    for k, v in pairs(obj) do res[Copy(k, s)] = Copy(v, s) end
+    for k, v in pairs(obj) do res[obj.Copy(k, s)] = obj.Copy(v, s) end
     return res
 end
 
@@ -210,22 +271,6 @@ obj.UpdateItemsInArray = function(data, array)  -- this will only print items co
             table.insert(table_, str_)
         end  
     end
-    return table_
-end
-
-obj.UpdateItems = function(data)  -- this will print the whole array
-    local table_ = {}
-    for k,v in pairs(data) do
-        local str_ = ""
-        if type(v) == "string" then
-            str_ = k..': '..v               -- 'status: online'
-        else
-            str_ = k..': Type.'..type(v)  -- 'status: Type.function'
-        end
-        --print(str_)
-        table.insert(table_, str_)
-    end
-    --print('-----------------------------------------------------')
     return table_
 end
 

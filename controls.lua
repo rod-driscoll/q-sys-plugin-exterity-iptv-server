@@ -91,6 +91,14 @@ table.insert(ctrls, {
   UserPin      = true,
   Count        = 1
 })
+table.insert(ctrls, {
+  Name         = "PlaylistLogo",
+  ControlType  = "Button",
+  ButtonType   = "Trigger",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = 1
+})
 
   -- Individual Devices --
 table.insert(ctrls, {

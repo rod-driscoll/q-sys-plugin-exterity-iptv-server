@@ -38,21 +38,22 @@ if(CurrentPage == 'Setup') then
   table.insert(graphics,{Type="Text",Text=GetPrettyName(),Position={15,200},Size={380,14},FontSize=10,HTextAlign="Right", Color=colors.Gray})
 
 elseif(CurrentPage == 'System') then 
+  layout["PlaylistLogo"] = {PrettyName="Settings~PlaylistLogo"      ,Position={460,  9},Size={180,180},Style="Button",Color=colors.Transparent}
 
   table.insert(graphics,{Type="Text",Text="Device names"            ,Position={ 10,  5},Size={140, 16},FontSize=14,HTextAlign="Center"})
   layout["DeviceNames"] = {PrettyName="Settings~DeviceNames"        ,Position={ 10, 21},Size={140, 16},FontSize=12,Style="ComboBox"}
   table.insert(graphics,{Type="Text",Text="Device details"          ,Position={ 10, 37},Size={140, 16},FontSize=14,HTextAlign="Center"})
-  layout["DeviceDetails"] = {PrettyName="Settings~DeviceDetails"    ,Position={ 10, 53},Size={140,360},FontSize=12,Style="ListBox"}
+  layout["DeviceDetails"] = {PrettyName="Settings~DeviceDetails"    ,Position={ 10, 53},Size={140,360},FontSize=12,HTextAlign="Left",Style="ListBox"}
 
   table.insert(graphics,{Type="Text",Text="Playlist names"          ,Position={150,  5},Size={140, 16},FontSize=14,HTextAlign="Center"})
   layout["PlaylistNames"] = {PrettyName="Settings~PlaylistNames"    ,Position={150, 21},Size={140, 16},FontSize=12,Style="ComboBox"}
   table.insert(graphics,{Type="Text",Text="Playlist details"        ,Position={150, 37},Size={140, 16},FontSize=14,HTextAlign="Center"})
-  layout["PlaylistDetails"] = {PrettyName="Settings~PlaylisDetails" ,Position={150, 53},Size={140,360},FontSize=12,Style="ListBox"}
+  layout["PlaylistDetails"] = {PrettyName="Settings~PlaylisDetails" ,Position={150, 53},Size={140,360},FontSize=12,HTextAlign="Left",Style="ListBox"}
   
   table.insert(graphics,{Type="Text",Text="Channel names"           ,Position={290,  5},Size={140, 16},FontSize=14,HTextAlign="Center"})
   layout["ChannelNames"] = {PrettyName="Settings~ChannelNames"      ,Position={290, 21},Size={140, 16},FontSize=12,Style="ComboBox"}
   table.insert(graphics,{Type="Text",Text="Channel details"         ,Position={290, 37},Size={140, 16},FontSize=14,HTextAlign="Center"})
-  layout["ChannelDetails"] = {PrettyName="Settings~ChannelDetails"  ,Position={290, 53},Size={140,360},FontSize=12,Style="ListBox"}  
+  layout["ChannelDetails"] = {PrettyName="Settings~ChannelDetails"  ,Position={290, 53},Size={140,360},FontSize=12,HTextAlign="Left",Style="ListBox"}  
 
 elseif(CurrentPage == 'Devices') then 
 
@@ -89,7 +90,7 @@ elseif(CurrentPage == 'Devices') then
     table.insert(graphics,{Type="Text",Text="Platform"                        ,Position={276+x, 60+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
     layout["Platform "..i] = {PrettyName="Device "..i.."~Platform"            ,Position={388+x, 60+y},Size={140, 16},FontSize=12,Style="Text",Color=colors.White}
     table.insert(graphics,{Type="Text",Text="Device details"                  ,Position={276+x, 76+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
-    layout["Details "..i] = {PrettyName="Device "..i.."~Details"              ,Position={388+x, 76+y},Size={140, 90},FontSize=12,Style="ListBox"}
+    layout["Details "..i] = {PrettyName="Device "..i.."~Details"              ,Position={388+x, 76+y},Size={140, 90},FontSize=12,HTextAlign="Left",Style="ListBox"}
     
   end
 
