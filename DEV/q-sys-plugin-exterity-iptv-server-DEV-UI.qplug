@@ -254,7 +254,7 @@ function GetControls(props)
     Count        = props['Display Count'].Value
   })
   table.insert(ctrls, {
-    Name         = "Enabledisplay",
+    Name         = "EnableDisplay",
     ControlType  = "Indicator",
     IndicatorType= "Led",
     PinStyle     = "Output",
@@ -325,7 +325,8 @@ function GetControlLayout(props)
 
   if(CurrentPage == 'Setup') then
 
-    table.insert(graphics,{Type="Image",Image=logo,Position={230,35},Size={170,34}})
+    table.insert(graphics,{Type="GroupBox",Text="Connect",Fill=colors.Background,StrokeWidth=1,CornerRadius=4,HTextAlign="Left",Position={5,5},Size={400,120}})
+    table.insert(graphics,{Type="Image",Image=logo,Position={230,45},Size={170,34}})
   
     -- User defines connection properties
     table.insert(graphics,{Type="Text",Text="IP Address"    ,Position={ 15,35},Size={100,16},FontSize=14,HTextAlign="Right"})
@@ -400,3 +401,4 @@ function GetControlLayout(props)
 
   return layout, graphics
 end
+

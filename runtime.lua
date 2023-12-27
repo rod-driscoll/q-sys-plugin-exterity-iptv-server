@@ -1,5 +1,4 @@
- 
-	-----------------------------------------------------------------------------------------------------------------------
+ 	-----------------------------------------------------------------------------------------------------------------------
 	-- dependencies
 	-----------------------------------------------------------------------------------------------------------------------
 	rapidjson = require("rapidjson")
@@ -9,7 +8,7 @@
 	-----------------------------------------------------------------------------------------------------------------------
 	local SimulateFeedback = true
 	-- Variables and flags
-	local DebugTx=false
+	local DebugTx=true
 	local DebugRx=false
 	local DebugFunction=false
 
@@ -26,12 +25,10 @@
 	
 	function ErrorHandler(err)
     print('ERROR:', err)
- 	end
-   
+ 	end 
 	-----------------------------------------------------------------------------------------------------------------------
   -- Helper functions
 	-------------------------------------------------------------------------------------------------------------------
-
   -- A function to determine common print statement scenarios for troubleshooting
   function SetupDebugPrint()
     if Properties["Debug Print"].Value=="Tx/Rx" then
@@ -50,7 +47,6 @@
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Device control functions
 	-----------------------------------------------------------------------------------------------------------------------
-
 	function UpdateDeviceControlDetails(device) -- selected device, a table of a single device
 		if DebugFunction then print('DEVICE ', '--------------------------------------') end	
     --[[ local keys_ = { 'id', 'type', 'ip', 'location', 'name', 'platform', 'state', 'mac', 'room', 'platform_name', 'lock_flag', 'status', 'flatMac', 'last_executed_command', 'jobs', 'content' }
@@ -58,48 +54,247 @@
     Controls.DeviceDetails.Choices = helper.UpdateItems(device)
 	end
 
-	function DoFunctionOnDevice(func, control_name, name)
-		if DebugFunction then print('DoFunctionOnDevice()') end
-		--TODO
-	end
-
-	function GetPowerAndChannel(data) -- data is a single device
+	function GetPowerAndChannel(device) -- a single device
 		if DebugFunction then print('GetPowerAndChannel()') end
-		--TODO
-	end
+    local return_ = { ['channel'] = "", ['power'] = false, ['jobs_pending'] = false, ['playlist'] = "", ['is_tv_playlist'] = false, ['no_content'] = false }
+    if type(device.content) == "table" then
+      local result_ = xpcall(function()
+        if device.content~=nil then
+          --TablePrint(device.content, 2)
+          if device.content.channel~=nil and device.content.channel.name~=nil then
+            --print('channel:', device.content.channel.name)
+            return_.channel = device.content.channel.name
+            --if device.content.playlist~=nil then tv_chanel_playlist_id = device.content.playlist end
+          end         
+          if device.content.playlist~=nil then 
+            local kvp_  = { ['id'] = device.content.playlist }
+            local i, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
+            if playlist_~=nil and playlist_.name~=nil then
+              --print('playlist: '..playlist_.name)
+              return_.playlist = playlist_.name
+              for i,v in ipairs({ 'tv', 'television', 'channel' }) do
+                local x =string.find(string.lower(playlist_.name), v)
+                if string.find(string.lower(playlist_.name),v)~=nil then 
+                  return_.is_tv_playlist = true
+                end
+              end
+            end          
+          end
+          if device.content.standby==nil then print('standby is nil') end
+          --print('standby state:', device.content.standby, 'type:', type(device.content.standby))
+          if type(device.content.standby) == "string" then
+            return_.power = not (device.content.standby == "Standby") -- "Unknown" is ON
+          elseif type(device.content.standby) == "boolean" then
+            return_.power = not device.content.standby
+          end
+        end
+      end
+      , ErrorHandler)
+      --print('CheckContent result:', result_)
+
+  -- need to look at the jobs to figure out the actual state of the device   
+      if device['jobs'] then
+        --print(#device.jobs..' jobs Type.'..type(device.jobs))
+        if #device.jobs > 0 and type(device.jobs) == "table" then
+          local found_successful_job_ = false
+          for i=1, #device.jobs do
+            --print('job['..i..'].status: '..device.jobs[i].status)
+            if device.jobs[i].status~=nil then
+              if device.jobs[i].status == "PENDING" then return_.jobs_pending = true end
+              if device.jobs[i].status == "SUCCESS" and (not found_successful_job_) and device.jobs[i].params~=nil then
+                found_successful_job_ = true
+                local params_ = rapidjson.decode(device.jobs[i].params)
+                print('successful job['..i..'], params type.'..type(params_))
+                if type(params_) == "table" then
+                  --if params_.channel.name then print('channel: '..params_.channel.name) end
+                  --if params_ and params_.channel and type(params_.channel) .name then 
+                  if params_~=nil and params_.channel then -- a channel command
+                    --print('type(params_.channel): '..type(params_.channel))
+                    if type(params_.channel) == "table" and params_.channel.name then
+                      return_.channel = params_.channel.name 
+                    end
+                  elseif params_ and params_.manifest then -- a signage command
+                    return_.channel = "" 
+                    --return_.signage = true
+                  else
+                    if type(params_) == "table" then TablePrint(params_.channel, 2) end
+                  end
+                else --  type(params_) == "string"
+                  return_no_content = true -- probably an audio player
+                  return_.channel = "" 
+                  --return_.signage = false
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+    return return_
+  end
 
 	function SetDevicePower(data, component, control) -- control == 'Power_on', 
 		if DebugFunction then print(control..' selected for', data.name, 'type:'..data['type'], 'platform:'..data['platform_name']) end
 		--TODO
 	end
 	
-	function UpdateDevice(component, data) -- data is a single device
-		if DebugFunction then print('UpdateDevice()') end
-		--TODO
+	function UpdateDevice(i, device) -- data is a single device
+		if DebugFunction then print('UpdateDevice('..i..')') end
+		Controls['Address'][i].String = device['ip']
+		Controls['MACAddress'][i].String = device['mac']        
+		Controls['Online'][i].Boolean = (device['status'] == 'online')
+		Controls['Details'][i].Choices = helper.UpdateItems(device)
+		Controls['DeviceSelect'][i].String = device['name']
+		Controls['HasDecoder'][i].Boolean = (string.len(device['platform_name']) > 0)
+		Controls['Enabledisplay'][i].Boolean = device['platform_name'] == nil or (string.len(device['platform_name']) < 1)
+		if string.len(Controls['Details'][i].String) > 0 then
+			Controls['Details'][i].String = helper.GetValueStringFromTable(device, Controls['Details'][i].String)
+		else
+			Controls['Details'][i].String = helper.GetValueStringFromTable(device, "mac: ")
+		end
+		if string.len(device['platform_name']) > 0 then
+			Controls['Platform'][i].String = device['platform_name']
+		end
+	
+		--CheckContent(device)
+		--print('trying to update channel from device')
+		local status_ = {}
+
+		if type(device.content) == "table" then
+			status_ = GetPowerAndChannel(device)
+			print('channel: '..status_.channel..', is_tv_playlist: '..tostring(status_.is_tv_playlist)..', power: '..tostring(status_.power)..', playlist: '..tostring(status_.playlist)..', signage: '..tostring(status_.signage))    
+			Controls['PlaylistSelect'][i].String = status_.playlist
+			Controls['PowerOn'][i].Boolean = status_.power
+			Controls['PowerOff'][i].Boolean = not status_.power
+			
+			if status_.power then -- power on
+				if string.len(status_.channel) > 0 and not status_.jobs_pending then -- channel exists, set feedback
+          print('channel not empty, power is on, no jobs pending')
+          Controls['ChannelSelect'][i].String = status_.channel 
+          Controls['CurrentContent'][i].String = status_.channel
+					Controls['PowerOnChannel'][i].String = status_.channel
+					Controls['CurrentContent'][i].String = status_.channel
+				else -- need to force it to a channel
+					if status_.is_tv_playlist and Controls['ChannelSelect'][i] and string.len(Controls['ChannelSelect'][i].String) > 0 then --it's on a blank channel, have to clear selector before forcing it
+						if string.len(Controls['PowerOnChannel'][i].String) < 1 then -- the power on channel is blank
+							Controls['PowerOnChannel'][i].String = Controls['ChannelSelect'][i].String -- give it a channel to return to in a moment
+						end
+						if data.status == 'online' then
+							print("setting power on channel - because the system doesn't recall the previous channel on power up")
+							print("playlist: "..status_.playlist..", tv playlist: "..tv_chanel_playlist_id)
+							Controls['ChannelSelect'][i].String = "" -- clear the string so we can force an event when we set it again
+							Controls['ChannelSelect'][i].String = Controls['PowerOnChannel'][i].String -- force the Event
+							Controls['CurrentContent'][i].String = Controls['PowerOnChannel'][i].String
+						end
+					elseif not status_.is_tv_playlist then
+						print('not in TV channel playlist:'..status_.playlist..', clearing the current and startup channels')
+							Controls['ChannelSelect'][i].String = "" -- clear the strings
+							--Controls['ChannelSelect'][i].String = status_.playlist -- try inserting the playlist name
+							Controls['PowerOnChannel'][i].String = ""
+							 Controls['CurrentContent'][i].String = status_.playlist
+					end
+				end
+			else -- power off
+				if string.len(Controls['ChannelSelect'][i].String) > 0 then
+					Controls['ChannelSelect'][i].String = status_.channel -- clear the string so we can force an event when we set it again
+					Controls['CurrentContent'][i].String = status_.channel
+				end
+			end
+			if string.len(status_.channel) > 0 and not status_.jobs_pending then
+				print('channel not empty')
+				Controls['PowerOnChannel'][i].String = status_.channel
+			end
+		end
+
+		-- EventHandlers
+		--print('assigning EventHandlers')
+		Controls['ChannelSelect'][i].EventHandler = function(ctl) -- channel select
+			print('channel selected "'..ctl.String..'" for '..device['name']..' type: '..device['type']..' platform: '..device['platform_name'])
+			if string.len(ctl.String) > 0 then
+				--get channel uri
+				local kvp_  = { ['name'] = ctl.String }
+				local i, channel_ = helper.GetArrayItemWithKey(channels, kvp_)
+				if channel_~=nil then
+					PostRequest("/devices/"..device['mac'].."/commands/channel", '{"uri":"'..channel_['uri']..'"}')
+				else
+					print('channel', type(i))
+				end
+			end
+		end
+
+    Controls['DeviceSelect'][i].EventHandler = function(ctl) -- ctl is the name of the 
+      print('device selected',  ctl.String) -- e.g. 'Bar 1', we don't know what module it came fromDoFunctionOnDevice
+      DoFunctionOnDevice(AssignDevice, 'Device_Select', ctl.String)
+    end
 	end
+	
 
 	function SetControl(data, control, value) -- (table, 'Power_On', true) -- data is a single device
 		if DebugFunction then print('SetControl()') end
 		--TODO
 	end
 
-	function AssignDevice(i, data) -- data is a single device
-		print('AssignDevice['..i..']: ', data['name'])
-		--TODO
-	end
+	function AssignDevice(i, device) -- device is a single device
+		print('AssignDevice('..i..'): ', device['name'])
+		if device.name then
+      Controls['DeviceSelect'][i].String = device['name'] -- assign it to a device
+      --print('assigned ['..i..'] name:', device[i]['name'], 'to device', Controls['DeviceSelect'][i].String..i)
+      UpdateDevice(i, device)
+    end
+  end
 	
 	function CheckContent(device) -- device is a single device
 		if DebugFunction then print('CheckContent()') end
 		--TODO
 	end
 
-	function UpateDeviceData(i) -- 
-		if DebugFunction then print('UpateDeviceData()') end
-		--TODO
+	function UpateDeviceData(i) -- i is the index in devices[i]
+		if DebugFunction then print('UpateDeviceData('..i..')') end
+		--Controls['DeviceSelect'][i].Choices = Controls.DeviceNames.Choices -- update the device selector choices
+		
+		-- find all components with the same id
+		local found_ = false
+		for j=1, #Controls['DeviceSelect'] do --iterate through all devics in data
+			-- look for ID in Device_details
+			if not found_ then
+        if Controls['DeviceSelect'][j].String == devices[i].name then
+ 					UpdateDevice(j, devices[i]) --update existing device
+  				found_ = true
+        elseif #Controls['Details'][j].Choices>0 then -- if device Control exists
+					local id_ = helper.GetChoicesItem(Controls['Details'].Choices, 'id') -- this will return the id of the component device, e.g. '657536578'       
+					print('Control['..j..']: "'..id_..'", device['..i..']: "'..devices[i].id..'"')
+					if (id_ and id_ == devices[i].id) or Controls['DeviceSelect'][j].String == devices[i].name then -- if this matches the device update it
+						--print('Update ['..i..'] '..Controls['DeviceSelect'][j].String)
+						UpdateDevice(j, devices[i]) --update existing device
+						--AssignDevice(j, devices[i])
+						found_ = true
+					end
+				end
+			end
+		end
+    
+  if not found_ then -- this is a new device, put it into the next empty component
+    print('NEW DEVICE ['..i..'] '..devices[i].name..' id: '..devices[i].id) --found the device, now find all matches
+    found_ = false
+    for j=1, #Controls['DeviceSelect'] do --iterate through all devics in data
+      if not found_ then -- go until an empty one is found
+        if string.len(Controls['DeviceSelect'].String) < 1 then -- an unassigned component
+          AssignDevice(j, devices[i])
+          found_ = true -- stop looking for more unassigned components
+        end
+      end
+    end
+    if not found_ then
+      print('NOT ASSIGNED ['..i..'] '..devices[i].name..' id: '..devices[i].id) 
+    end
+  end
+
+
 	end
 
   function UpdateDeviceNames(data)  -- data is an array of devices
     local names_ = {}
+    local assigned_idx_ = 0
     for a,b in ipairs(data) do --iterate through devices and create a table of names to update Choices
       if b['name'] then table.insert(names_, b['name']) end   
       --[[ -- this is just for debugging
@@ -108,14 +303,22 @@
       if b['mac'] then table.insert(macs_, b['mac']) end
       for k,v in pairs(b) do
         if a == 1 then print('['..a..']', k) end --print all keys
-      end ]]
+      end --]]
+      -- assign unassigned devices to unassigned controls
+      -- look for the first control that is either empty or contains this device
+      for i=1, #Controls['DeviceSelect'] do
+        if Controls['DeviceSelect'][i].String=="" then AssignDevice(i,data[i]) break --unassigned so assign
+        elseif Controls['DeviceSelect'][i].String==b['name'] then break end -- assigned so stop looking
+      end
     end
-    Controls.DeviceNames.Choices = names_ 
+    Controls.DeviceNames.Choices = names_
+    for i=1, #Controls['DeviceSelect'] do
+		  Controls['DeviceSelect'][i].Choices = Controls.DeviceNames.Choices -- update the device selector choices
+    end
   end
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Parse devices
 	-----------------------------------------------------------------------------------------------------------------------
-
 	function ParseDevice(device)  -- data is a single device
 		if DebugFunction then print('device data response: '..device['name']) end
 		local found_ = false
@@ -139,12 +342,15 @@
 		if DebugFunction then print('ParseDevices', #data.. ' devices found') end
 		devices = data
 		UpdateDeviceNames(devices)
+      --[[ DON'T iterate through devices and assign devices, because it causes a maximum execution error
+      -- let it poll the devices one at a time so each device is assigned on a different task
+      for i=1, #data do --each device
+        UpateDeviceData(i)
+      end ]]
 	end
-
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Parse channels
 	-----------------------------------------------------------------------------------------------------------------------
-
 	function ParseChannels(data) -- data is an array of channels
 		if DebugFunction then print('channel data response: '..#data..' channels found') end
 		channels = data
@@ -181,7 +387,6 @@
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Parse Playlists
 	-----------------------------------------------------------------------------------------------------------------------
-
 	function ParsePlaylists(data) -- data is an array of playlists
 		if DebugFunction then print('playlist data response: '..#data..' playlists found') end
 		playlists = data
@@ -195,8 +400,8 @@
 		end
     Controls.PlaylistNames.Choices = names_
     for i=1, #devices do -- update list in the device modules
-      if Controls['PlaylistSelect '..i]~=nil then
-        Controls['PlaylistSelect '..i].Choices = names_ -- update the device selector choices
+      if Controls['PlaylistSelect'][i]~=nil then
+        Controls['PlaylistSelect'][i].Choices = names_ -- update the device selector choices
       end
     end
 	end
@@ -223,12 +428,13 @@
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Parse initial response
 	-----------------------------------------------------------------------------------------------------------------------
-
 	function QueryAll()
-		if DebugFunction then print('Query all') end
-		for i=1, #devices do
-			GetRequest(Path.."/devices/"..devices[i]['mac'])
-		end
+		if DebugFunction then print('Query all ('..#devices..')') end
+		if #devices>0  then
+      for i=1, #Controls['DeviceSelect'] do GetRequest(Path.."/devices/"..devices[i]['mac']) end
+    else 
+      GetRequest(Path.."/devices")
+    end
     Timer.CallAfter(function() GetRequest(Path.."/channels") end, 1) --wait 1 sec to avoid maximum execution
 		Timer.CallAfter(function() GetRequest(Path.."/playlists") end, 2) --wait 1 sec to avoid maximum execution 
 	end
@@ -238,6 +444,10 @@
     Controls.PlaylistLogo.Style = rapidjson.encode({IconData = Crypto.Base64Encode(img)})
     Controls.PlaylistLogo.Color = "#00FFFFFF"
   end
+
+  function ParseString(str)
+		ParseImage(str)
+	end
 
 	function ParseResponse(json)
 	-- responses from the HTTP server, determine how to parse them here
@@ -258,19 +468,15 @@
 		end
 		data_ = nil
 	end
-
 	-----------------------------------------------------------------------------------------------------------------------
 	-- HTTP comms functions
 	-------------------------------------------------------------------------------------------------------------------------
 	-- the core of this is copied from an example so there is some unused stuff
-
 	-- Constants
 	local StatusState = { OK = 0, COMPROMISED = 1, FAULT = 2, NOTPRESENT = 3, MISSING = 4, INITIALIZING = 5}  -- Status states in designer
-
 	-- Variables
 	local RequestTimeout = 10           -- Timeout of the connection in seconds
 	local Port = 80                     -- Port to use (if not 80 or 443)
-
 	-- Functions
 	-- Function that sets plugin status
 	function ReportStatus(state, msg)
@@ -287,8 +493,10 @@
 			ReportStatus("OK")
 			if DebugRx then print("Rx: ", data) end
 			--ResponseText.String = data
-      if string.sub(headers["Content-Type"],1,string.len("image"))=="image" then -- headers["Content-Type"]=="image/png"
+			if headers["Content-Type"]~=nil and headers["Content-Type"]:match('^image')~=nil then -- headers["Content-Type"]=="image/png"
         ParseImage(data)
+			elseif headers["Content-Type"]~=nil and headers["Content-Type"]:match('^text') then -- headers["Content-Type"]=="text/plain"
+				ParseString(data)
       else
 			  ParseResponse(data)
       end
@@ -316,6 +524,7 @@
 			["Path"] = path
 			--["Query"] = QueryData
 		})
+    url = 'http://'..Controls.IPAddress.String..'/'..path
 
 		if DebugTx then print("Sending GET request: " .. url) end
 		HttpClient.Download({ 
@@ -356,18 +565,17 @@
 			EventHandler = ResponseHandler
 		})
 	end
-
 	-------------------------------------------------------------------------------
 	-- Device functions
 	-------------------------------------------------------------------------------
-
 	function initialize()
   	SetupDebugPrint()
 		if DebugFunction then print("initialize() Called") end
 		--ClearDevices() -- only do this if you want to reset all the modules
     if Controls.IPAddress.String~=nil and string.len(Controls.IPAddress.String)>0 then
-      GetRequest(Path.."/devices")
-      Timer.CallAfter(function() QueryAll() end, 1) --wait 1 sec to avoid maximum execution
+      --GetRequest(Path.."/devices")
+      QueryAll()
+      Timer.CallAfter(function() QueryAll() end, 2) --wait 1 sec to avoid maximum execution
       if not QueryTimer:IsRunning() then
         QueryTimer.EventHandler = QueryAll
         QueryTimer:Start(Properties["Poll Interval"].Value)
@@ -381,7 +589,6 @@
     --Controls.PlaylistLogo.Style = rapidjson.encode({IconData = logo_})
 	end
 	initialize()
-
 	-----------------------------------------------------------------------------------------------------------------------
 	-- EventHandlers
 	-----------------------------------------------------------------------------------------------------------------------
@@ -394,8 +601,14 @@
     local kvp_  = { ['name'] = ctl.String }
     local i,device_ = helper.GetArrayItemWithKey(devices, kvp_)
     if device_ then
-      --print('device_ type:', type(device_))
+      --[[
+      print('device_ type:', type(device_))
+      print('device_ name:', devices[i]['name'])
+      print('device_ id:', devices[i]['id'])
+      print('device_ mac:', devices[i]['mac'])
+      --]]
       UpdateDeviceControlDetails(device_) -- update 'Decoder_details'
+      GetRequest(Path.."/devices/"..devices[i]['mac'])
     end
 
   end

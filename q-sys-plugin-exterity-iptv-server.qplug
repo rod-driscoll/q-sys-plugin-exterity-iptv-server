@@ -197,7 +197,7 @@ function GetControls(props)
     Count        = props['Display Count'].Value
   })
   table.insert(ctrls, {
-    Name         = "DeviceDetails",
+    Name         = "Details",
     ControlType  = "Text",
     Style        = "ListBox",
     PinStyle     = "Output",
@@ -245,7 +245,7 @@ function GetControls(props)
     Count        = props['Display Count'].Value
   })
   table.insert(ctrls, {
-    Name         = "Enabledisplay",
+    Name         = "EnableDisplay",
     ControlType  = "Indicator",
     IndicatorType= "Led",
     PinStyle     = "Output",

@@ -182,7 +182,7 @@ table.insert(ctrls, {
   Count        = props['Display Count'].Value
 })
 table.insert(ctrls, {
-  Name         = "Enabledisplay",
+  Name         = "EnableDisplay",
   ControlType  = "Indicator",
   IndicatorType= "Led",
   PinStyle     = "Output",
@@ -194,6 +194,14 @@ table.insert(ctrls, {
   ControlType  = "Indicator",
   IndicatorType= "Led",
   PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "ExternalDisplayConnected",
+  ControlType  = "Button",
+  IndicatorType= "Toggle",
+  PinStyle     = "Both",
   UserPin      = true,
   Count        = props['Display Count'].Value
 })
