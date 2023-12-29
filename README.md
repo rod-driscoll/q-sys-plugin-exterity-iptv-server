@@ -24,21 +24,19 @@ The files in "./DEV/" are for dev only and may not be the most current code, the
 
 ## Features
 
-* None yet - haha
-
-### Features not implemented
-
 * Get devices
 * Get channels
 * Get playlists
-* Trigger channel
-* Trigger playlist
+
+### Features not implemented
+
 * Power endpoint
 * Authentication
 
 ### Features not tested
 
-* Not tested on hardware
+* Trigger channel
+* Trigger playlist
 
 ## References
 
