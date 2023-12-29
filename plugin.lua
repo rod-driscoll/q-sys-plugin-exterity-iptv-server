@@ -1,7 +1,3 @@
--- Q-Sys plugin for Exterity IPTV server
--- <https://github.com/rod-driscoll/q-sys-plugin-exterity-iptv-server>
--- 20231128 v1.0.0 Rod Driscoll<rod@theavitgroup.com.au>
-
 -- Information block for the plugin
 --[[ #include "info.lua" ]]
 
