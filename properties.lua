@@ -8,9 +8,9 @@ table.insert(props,{
 table.insert(props,{
   Name  = "Poll Interval",
   Type  = "integer",
-  Min   = 1,
+  Min   = 5,
   Max   = 255, 
-  Value = 30
+  Value = 60
 })
 table.insert(props,{
   Name    = "Debug Print",

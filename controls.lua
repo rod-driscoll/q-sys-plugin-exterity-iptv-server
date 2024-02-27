@@ -230,3 +230,11 @@ table.insert(ctrls, {
   UserPin      = true,
   Count        = props['Display Count'].Value
 })
+table.insert(ctrls, {
+  Name         = "Logo",
+  ControlType  = "Button",
+  ButtonType   = "Trigger",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})

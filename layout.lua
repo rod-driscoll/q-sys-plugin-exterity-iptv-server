@@ -92,7 +92,9 @@ elseif(CurrentPage == 'Devices') then
     layout["Platform "..i] = {PrettyName="Device "..i.."~Platform"            ,Position={388+x, 60+y},Size={140, 16},FontSize=12,Style="Text",Color=colors.White}
     table.insert(graphics,{Type="Text",Text="Device details"                  ,Position={276+x, 76+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
     layout["Details "..i] = {PrettyName="Device "..i.."~Details"              ,Position={388+x, 76+y},Size={140, 90},FontSize=12,HTextAlign="Left",Style="ListBox"}
-    
+ 
+    layout["Logo "..i] = {PrettyName="Device "..i.."~PlaylistLogo"            ,Position={280+x, 92+y},Size={104, 74},Style="Button",Color=colors.Transparent}
+ 
   end
 
 end;
