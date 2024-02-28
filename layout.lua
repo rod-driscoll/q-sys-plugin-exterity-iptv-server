@@ -14,7 +14,8 @@ local colors = {
   Blue        = {32,32,233},
   Black       = {0,0,0},
   White       = {255,255,255},
-  Gray        = {96,96,96}
+  Gray        = {96,96,96},
+  LightGray   = {194,194,194}
 }
 
 layout["code"]={PrettyName="code",Style="None"}  
@@ -66,7 +67,7 @@ elseif(CurrentPage == 'Devices') then
     x = offset_[1]*math.floor(((i-1)/max_rows_)+.05)
     y = offset_[2]*math.floor(((i-1)%max_rows_)+.05)
 
-    table.insert(graphics,{Type="GroupBox",Text="Device "..i,Fill=colors.Background,StrokeWidth=1,CornerRadius=4,HTextAlign="Left",Position={14+x,5+y},Size={526,172}})
+    table.insert(graphics,{Type="GroupBox",Text="Device "..i                  ,Position={ 14+x,  5+y},Size={526,172},FontSize=12,HTextAlign="Left",Fill=colors.Background,StrokeWidth=1,CornerRadius=4})
     -- column 1
     table.insert(graphics,{Type="Text",Text="Device select"                   ,Position={ 24+x, 28+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
     layout["DeviceSelect "..i] = {PrettyName="Device "..i.."~DeviceSelect"    ,Position={136+x, 28+y},Size={140, 16},FontSize=12,Style="ComboBox"}
@@ -75,14 +76,20 @@ elseif(CurrentPage == 'Devices') then
     table.insert(graphics,{Type="Text",Text="Playlist select"                 ,Position={ 24+x, 60+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
     layout["PlaylistSelect "..i] = {PrettyName="Device "..i.."~PlaylistSelect",Position={136+x, 60+y},Size={140, 16},FontSize=12,Style="ComboBox"}
     
-    table.insert(graphics,{Type="Text",Text="Power on"                        ,Position={ 24+x, 76+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
-    layout["PowerOn "..i] = {PrettyName="Device "..i.."~PowerOn"              ,Position={134+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button"}
-    table.insert(graphics,{Type="Text",Text="Power off"                       ,Position={ 24+x, 92+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
-    layout["PowerOff "..i] = {PrettyName="Device "..i.."~PowerOff"            ,Position={134+x, 92+y},Size={ 36, 16},FontSize=12,Style="Button"}
-    table.insert(graphics,{Type="Text",Text="Power toggle"                    ,Position={ 24+x,108+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
-    layout["PowerToggle "..i] = {PrettyName="Device "..i.."~PowerToggle"      ,Position={134+x,108+y},Size={ 36, 16},FontSize=12,Style="Button"}
-    table.insert(graphics,{Type="Text",Text="Current content"                 ,Position={ 24+x,124+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
-    layout["CurrentContent "..i] = {PrettyName="Device "..i.."~CurrentContent",Position={134+x,124+y},Size={140, 32},FontSize=12,Style="Text",Color=colors.White}
+    table.insert(graphics,{Type="Text",Text="Power"                           ,Position={ 24+x, 76+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
+    layout["PowerOn "..i] = {PrettyName="Device "..i.."~PowerOn"              ,Position={134+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button",Text="ON"}
+    layout["PowerOff "..i] = {PrettyName="Device "..i.."~PowerOff"            ,Position={170+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button",Text="OFF"}
+    layout["PowerToggle "..i] = {PrettyName="Device "..i.."~PowerToggle"      ,Position={206+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button",Text="TOGGLE"}
+    table.insert(graphics,{Type="Text",Text="Current content"                 ,Position={ 24+x, 92+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
+    layout["CurrentContent "..i] = {PrettyName="Device "..i.."~CurrentContent",Position={134+x, 92+y},Size={140, 32},FontSize=12,Style="Text",Color=colors.White,WordWrap=true}
+
+    table.insert(graphics,{Type="GroupBox",Text="Connected display"           ,Position={ 14+x,124+y},Size={262, 52},FontSize=10,HTextAlign="Left",Fill=colors.Transparent,StrokeWidth=1,CornerRadius=4})
+    table.insert(graphics,{Type="Text",Text="Status"                          ,Position={ 24+x,138+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
+    layout["DisplayStatus "..i] = {PrettyName="Device "..i.."~Display~Status" ,Position={134+x,128+y},Size={140, 30},FontSize=10,Style="Text",IsReadOnly=true,Color=colors.LightGray}
+    table.insert(graphics,{Type="Text",Text="IP address"                      ,Position={ 24+x,156+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
+    layout["DisplayIPAddress "..i] = {PrettyName="Device "..i.."~Display~IPAddress"
+                                                                              ,Position={134+x,158+y},Size={140, 16},FontSize=12,Style="Text",Color=colors.White}
+
     -- column 2
     table.insert(graphics,{Type="Text",Text="IP address"                      ,Position={276+x, 28+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
     layout["Address "..i] = {PrettyName="Device "..i.."~IPAddress"            ,Position={388+x, 28+y},Size={140, 16},FontSize=12,Style="Text",Color=colors.White}

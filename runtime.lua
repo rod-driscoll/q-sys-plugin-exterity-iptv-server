@@ -8,7 +8,7 @@
 	-----------------------------------------------------------------------------------------------------------------------
 	local SimulateFeedback = true
 	-- Variables and flags
-	local DebugTx=true
+	local DebugTx=false
 	local DebugRx=false
 	local DebugFunction=false
 
@@ -26,7 +26,7 @@
 	
 	function ErrorHandler(err)
     print('ERROR:', err)
- 	end 
+ 	end
 	-----------------------------------------------------------------------------------------------------------------------
   -- Helper functions
 	-------------------------------------------------------------------------------------------------------------------
@@ -56,7 +56,7 @@
 	end
 
 	function GetPowerAndChannel(device) -- a single device
-		if DebugFunction then print('GetPowerAndChannel()') end
+		if DebugFunction then print('GetPowerAndChannel('..device.name..')') end
     local return_ = { ['channel'] = "", ['power'] = false, ['jobs_pending'] = false, ['playlist'] = "", ['is_tv_playlist'] = false, ['no_content'] = false }
     if type(device.content) == "table" then
       local result_ = xpcall(function()
@@ -134,22 +134,113 @@
     return return_
   end
 
-	function SetDevicePower(device, i, control) -- control == 'Power_on', 
-		if DebugFunction then print(control..' selected for', device.name, 'type:'..device['type'], 'platform:'..device['platform_name']) end
-    print(control..' selected for', device.nam, 'type:'..device['type'], 'platform:'..device.platform_name)
-    --print('display connected: '..tostring(component.Disable_decoder_power.Boolean))
+	function SetDevicePower(display, device, i, command) -- command == 'Power_on', 
+		if DebugFunction then print(command..' selected for', device.name, 'type:'..device['type'], 'platform:'..device['platform_name']) end
+    print('display type('..type(display)..')')
     --if string.len(device['platform_name']) > 0 then -- it is a decoder so blank it
---[[ TODO-add Controls['ExternalDisplayConnected'] to the controls 
-    if Controls['ExternalDisplayConnected'].Boolean then -- a display module is connected to the display so use it for power
-      print('sending '..control..' to display component, type:', device['type'])
-      SetControl(device, control, true)
+    local command_=nil
+    if display then -- a display module with the command is connected to the display so use it for power
+      if command=='Display_off' then 
+        if display['PanelOff']~=nil then 
+          command_ = 'PanelOff'
+        elseif display['PowerOff']~=nil then 
+          command_ = 'PowerOff'
+        end
+      elseif command=='Display_on' then 
+        if display['PanelOn']~=nil then 
+          command_ = 'PanelOn'
+        elseif display['PowerOn']~=nil then 
+          command_ = 'PowerOn'
+        end
+      end
+    end
+    if command_ then
+      print('sending '..command_..' to display component, type:', device['type'])
+      SetDisplayCommand(display, command_, true)
     else -- not a decoder, so tell the native device module to power it
-      PostRequest("/devices/"..device['mac'].."/commands/"..command_, '') -- this will reset the channel
+      PostRequest("/devices/"..device['mac'].."/commands/"..command, '') -- this will reset the channel
       --actually don't power it becaue it comes up in the wrong mode
     end
---]]
   end
 	
+	function UpdateDisplayModule(i, device) -- device is a single device
+    local display_ = Properties['Display Code Name Prefix'].Value -- e.g. 'Display_'
+    display_ = display_..i                                         -- e.g. 'Display_1'
+    display_ = Component.New(display_)
+    --print('display_ component: '..(display_ ~= nil and 'exists' or 'is nil'))
+    display_ = (device['platform_name'] == nil or (string.len(device['platform_name']) < 1)) and display_
+    --print('display_ enabled: '..tostring(display_ ~= nil))
+    Controls['EnableDisplay'][i].Boolean = display_ ~= nil
+		--Controls['DisplayIPAddress'][i].String = display_ ~= nil and device['ip'] or ''
+		Controls['DisplayIPAddress'][i].IsInvisible = display_ == nil
+		--Controls['DisplayStatus'][i].IsInvisible = display_ == nil
+
+    --local decoder_types = { 'UHD Decoder', 'Receiver', 'Media Player' } -- 'sssfp5Lfd'
+    Controls['PowerOff'][i].EventHandler = function(ctl) -- power_off
+      SetDevicePower(display_, device, i, 'Display_off')
+    end   
+    
+    Controls['PowerOn'][i].EventHandler = function(ctl) -- power_on
+      SetDevicePower(display_, device, i, 'Display_on')
+    end
+    
+    Controls['PowerToggle'][i].EventHandler = function(ctl) -- power_on
+    --status_ = GetPowerAndChannel(data)
+      if ctl.Boolean then
+        SetDevicePower(display_, device, i, 'Display_on')
+      else
+        SetDevicePower(display_, device, i, 'Display_off')
+      end
+    end  
+
+    if display_ then 
+      if display_['IPAddress'] then         
+        display_['IPAddress'].String = device['ip']
+        Controls['DisplayIPAddress'][i].String = display_['IPAddress'].String
+
+        display_['IPAddress'].EventHandler = function(ctl) 
+          print('Display IPAddress ['..i..']: '..tostring(ctl.String))
+          Controls['DisplayIPAddress'][i].String = ctl.String
+        end
+
+      end
+      if display_['PanelStatus'] then 
+        Controls['PowerToggle'][i].Boolean = display_['PanelStatus'].Boolean
+        Controls['PowerOn'    ][i].Boolean = display_['PanelStatus'].Boolean
+        Controls['PowerOff'   ][i].Boolean = not display_['PanelStatus'].Boolean
+        display_['PanelStatus'].EventHandler = function(ctl) 
+          print('Display PanelOnStatus ['..i..']: '..tostring(ctl.Boolean))
+          Controls['PowerToggle'][i].Boolean = ctl.Boolean
+          Controls['PowerOn'][i].Boolean = ctl.Boolean
+          Controls['PowerOff'][i].Boolean = not ctl.Boolean
+        end
+      end
+      if display_['PowerStatus'] then 
+        if not display_['PanelStatus'] then 
+          display_['PowerStatus'].EventHandler = function(ctl) 
+            print('Display PowerStatus ['..i..']: '..tostring(ctl.Boolean))
+          end
+        end
+      end
+      if display_['Status'] then 
+        Controls['DisplayStatus'][i].Value = display_['Status'].Value
+        Controls['DisplayStatus'][i].String = display_['Status'].String
+
+        display_['Status'].EventHandler = function(ctl) 
+          print('Display ConnectionStatus ['..i..']: '..ctl.String)
+          Controls['DisplayStatus'][i].Value = ctl.Value
+          Controls['DisplayStatus'][i].String = ctl.String
+        end
+      end
+    else 
+      Controls['DisplayIPAddress'][i].IsInvisible = true
+      Controls['DisplayIPAddress'][i].String = ''
+      --Controls['DisplayStatus'][i].IsInvisible = true
+      Controls['DisplayStatus'][i].Value = 3 -- 3: not present
+      Controls['DisplayStatus'][i].String = 'No display connected'
+    end
+  end 
+
 	function UpdateDevice(i, device) -- device is a single device
 		if DebugFunction then print('UpdateDevice('..i..'): '..device['name']) end
 		Controls['Address'][i].String = device['ip']
@@ -158,8 +249,8 @@
 		Controls['Details'][i].Choices = helper.UpdateItems(device)
 		Controls['DeviceSelect'][i].String = device['name']
 		Controls['HasDecoder'][i].Boolean = (string.len(device['platform_name']) > 0)
-		Controls['EnableDisplay'][i].Boolean = device['platform_name'] == nil or (string.len(device['platform_name']) < 1)
-		if string.len(Controls['Details'][i].String) > 0 then
+    UpdateDisplayModule(i, device)
+    if string.len(Controls['Details'][i].String) > 0 then
 			Controls['Details'][i].String = helper.GetValueStringFromTable(device, Controls['Details'][i].String)
 		else
 			Controls['Details'][i].String = helper.GetValueStringFromTable(device, "mac: ")
@@ -233,7 +324,7 @@
 				Controls['PowerOnChannel'][i].String = status_.channel
 			end
     else 
-    	print("Type("..type(device.content)..") doesn't contain any channel or playlist data")
+    	print("UpdateDevice - Type("..type(device.content)..") doesn't contain any channel or playlist data")
       Controls['Logo'][i].Style = ""
       Controls['Logo'][i].Color = "#708090" -- slate grey
 			Controls['PowerOn'][i].Boolean = false
@@ -271,36 +362,29 @@
         end
       end
     end
-    
-    local decoder_types = { 'UHD Decoder', 'Receiver', 'Media Player' } -- 'sssfp5Lfd'
-
-    Controls['PowerOff'][i].EventHandler = function(ctl) -- power_off
-      SetDevicePower(device, i, 'Display_off')
-    end   
-    
-    Controls['PowerOn'][i].EventHandler = function(ctl) -- power_on
-      SetDevicePower(device, i, 'Display_on')
-    end
-    
-    Controls['PowerToggle'][i].EventHandler = function(ctl) -- power_on
-    --status_ = GetPowerAndChannel(data)
-      if status_.power then
-        SetDevicePower(device, i, 'Display_off')
-      else
-        SetDevicePower(device, i, 'Display_on')
-      end
-    end  
-
 	end
 	
-	function SetControl(data, control, value) -- (table, 'Power_On', true) -- data is a single device
-		if DebugFunction then print('SetControl()') end
-		--TODO
+	function SetDisplayCommand(display, command, value) -- (table, 'Power_On', true) -- data is a single device
+		if DebugFunction then print('SetDisplayCommand('..command..','..tostring(value)..')') end
+		if display[command] then -- if component control exists
+      if type(value) == 'boolean' then
+        display[command].Boolean = value
+      elseif  type(value) == 'string' then
+        display[command].String = value
+      elseif  type(value) == 'table' then
+        display[command].Choices = value
+      else
+        display[command].Value = value
+      end
+    end
 	end
 
 	function AssignDevice(i, device) -- device is a single device
-		print('AssignDevice('..i..'): ', device['name'])
-		if device.name then
+    if DebugFunction then 
+      if device then print('AssignDevice('..i..'): ', device['name'])
+      else           print('AssignDevice('..i..'): device is nil') end
+    end
+		if device and device.name then
       Controls['DeviceSelect'][i].String = device['name'] -- assign it to a device
       --print('assigned ['..i..'] name:', device[i]['name'], 'to device', Controls['DeviceSelect'][i].String..i)
       UpdateDevice(i, device)
@@ -593,7 +677,7 @@
 
 	-- Function reads response code, sets status and prints received data.
 	function ResponseHandler(tbl, code, data, err, headers)
-		if DebugFunction then print("HTTP Response Handler called. Code: " .. code) end
+		if DebugFunction and DebugRx then print("HTTP Response Handler called. Code: " .. code) end
 		if code == 200 then  -- Vaild response
 			ReportStatus("OK")
 			if DebugRx then print("Rx: ", data) end
@@ -616,7 +700,7 @@
 
 	-- Send an HTTP GET request to the defined
 	function GetRequest(path, headers)
-		if DebugFunction then print("GetRequest() called: /"..path) end
+		if DebugFunction and DebugTx then print("GetRequest() called: /"..path) end
 		-- Define any HTTP headers to sent
 		headers = headers or {
 			--["Content-Type"] = "text/html",

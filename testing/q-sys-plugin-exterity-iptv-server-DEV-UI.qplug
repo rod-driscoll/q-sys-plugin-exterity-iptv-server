@@ -43,6 +43,11 @@ function GetProperties()
     Value = 2
   })
   table.insert(props,{
+    Name = 'Display Code Name Prefix',
+    Type = 'string',
+    Value = "Display_"
+  })
+  table.insert(props,{
     Name  = "Poll Interval",
     Type  = "integer",
     Min   = 5,
@@ -69,6 +74,7 @@ end
 -- Defines the Controls used within the plugin
 function GetControls(props)
   local ctrls = {}
+
   table.insert(ctrls, {
     Name         = "code",
     ControlType  = "Text",
@@ -309,6 +315,28 @@ function GetControls(props)
     UserPin      = true,
     Count        = props['Display Count'].Value
   })
+
+  -- Third party display modules --
+  table.insert(ctrls, {
+    Name         = "DisplayStatus",
+    ControlType  = "Indicator",
+    IndicatorType= "Status",
+    PinStyle     = "Output",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "DisplayIPAddress",
+    ControlType  = "Text",
+    Count        = 1,
+    DefaultValue = "Leave blank to disable",
+    UserPin      = true,
+    PinStyle     = "Input",
+    Count        = props['Display Count'].Value
+  })
+
+
+
   return ctrls
 end
 
@@ -338,6 +366,7 @@ function GetControlLayout(props)
   layout["code"]={PrettyName="code",Style="None"}  
   
   if(CurrentPage == 'Setup') then
+
     table.insert(graphics,{Type="GroupBox",Text="Connect",Fill=colors.Background,StrokeWidth=1,CornerRadius=4,HTextAlign="Left",Position={5,5},Size={400,120}})
     table.insert(graphics,{Type="Image",Image=logo,Position={230,45},Size={170,34}})
   
@@ -392,16 +421,21 @@ function GetControlLayout(props)
       layout["ChannelSelect "..i] = {PrettyName="Device "..i.."~ChannelSelect"  ,Position={136+x, 44+y},Size={140, 16},FontSize=12,Style="ComboBox"}
       table.insert(graphics,{Type="Text",Text="Playlist select"                 ,Position={ 24+x, 60+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
       layout["PlaylistSelect "..i] = {PrettyName="Device "..i.."~PlaylistSelect",Position={136+x, 60+y},Size={140, 16},FontSize=12,Style="ComboBox"}
-      
-      table.insert(graphics,{Type="Text",Text="Power on"                        ,Position={ 24+x, 76+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
-      layout["PowerOn "..i] = {PrettyName="Device "..i.."~PowerOn"              ,Position={134+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button"}
-      table.insert(graphics,{Type="Text",Text="Power off"                       ,Position={ 24+x, 92+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
-      layout["PowerOff "..i] = {PrettyName="Device "..i.."~PowerOff"            ,Position={134+x, 92+y},Size={ 36, 16},FontSize=12,Style="Button"}
-      table.insert(graphics,{Type="Text",Text="Power toggle"                    ,Position={ 24+x,108+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
-      layout["PowerToggle "..i] = {PrettyName="Device "..i.."~PowerToggle"      ,Position={134+x,108+y},Size={ 36, 16},FontSize=12,Style="Button"}
-      table.insert(graphics,{Type="Text",Text="Current content"                 ,Position={ 24+x,124+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
-      layout["CurrentContent "..i] = {PrettyName="Device "..i.."~CurrentContent",Position={134+x,124+y},Size={140, 32},FontSize=12,Style="Text",Color=colors.White}
-      -- column 2
+    
+      table.insert(graphics,{Type="Text",Text="Power"                           ,Position={ 24+x, 76+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
+      layout["PowerOn "..i] = {PrettyName="Device "..i.."~PowerOn"              ,Position={134+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button",Text="ON"}
+      layout["PowerOff "..i] = {PrettyName="Device "..i.."~PowerOff"            ,Position={170+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button",Text="OFF"}
+      layout["PowerToggle "..i] = {PrettyName="Device "..i.."~PowerToggle"      ,Position={206+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button",Text="TOGGLE"}
+      table.insert(graphics,{Type="Text",Text="Current content"                 ,Position={ 24+x, 92+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
+      layout["CurrentContent "..i] = {PrettyName="Device "..i.."~CurrentContent",Position={134+x, 92+y},Size={140, 32},FontSize=12,Style="Text",Color=colors.White,WordWrap=true}
+
+      table.insert(graphics,{Type="GroupBox",Text="Connected display"           ,Position={ 14+x,124+y},Size={262, 52},FontSize=10,HTextAlign="Left",Fill=colors.Transparent,StrokeWidth=1,CornerRadius=4})
+      table.insert(graphics,{Type="Text",Text="Status"                          ,Position={ 24+x,138+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
+      layout["DisplayStatus "..i] = {PrettyName="Device "..i.."~Display~Status" ,Position={134+x,128+y},Size={140, 30},FontSize=10,Style="Text",IsReadOnly=true,Color=colors.LightGray}
+      table.insert(graphics,{Type="Text",Text="IP address"                      ,Position={ 24+x,156+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
+      layout["DisplayIPAddress "..i] = {PrettyName="Device "..i.."~Display~IPAddress"
+                                                                                ,Position={134+x,158+y},Size={140, 16},FontSize=12,Style="Text",Color=colors.White}
+        -- column 2
       table.insert(graphics,{Type="Text",Text="IP address"                      ,Position={276+x, 28+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
       layout["Address "..i] = {PrettyName="Device "..i.."~IPAddress"            ,Position={388+x, 28+y},Size={140, 16},FontSize=12,Style="Text",Color=colors.White}
       table.insert(graphics,{Type="Text",Text="MAC address"                     ,Position={276+x, 44+y},Size={110, 16},FontSize=14,HTextAlign="Right"})

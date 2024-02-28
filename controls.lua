@@ -238,3 +238,22 @@ table.insert(ctrls, {
   UserPin      = true,
   Count        = props['Display Count'].Value
 })
+
+  -- Third party display modules --
+table.insert(ctrls, {
+  Name         = "DisplayStatus",
+  ControlType  = "Indicator",
+  IndicatorType= "Status",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "DisplayIPAddress",
+  ControlType  = "Text",
+  Count        = 1,
+  DefaultValue = "Leave blank to disable",
+  UserPin      = true,
+  PinStyle     = "Input",
+  Count        = props['Display Count'].Value
+})

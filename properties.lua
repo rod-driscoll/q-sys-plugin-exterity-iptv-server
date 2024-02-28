@@ -6,6 +6,11 @@ table.insert(props,{
   Value = 2
 })
 table.insert(props,{
+  Name = 'Display Code Name Prefix',
+  Type = 'string',
+  Value = "Display_"
+})
+table.insert(props,{
   Name  = "Poll Interval",
   Type  = "integer",
   Min   = 5,
