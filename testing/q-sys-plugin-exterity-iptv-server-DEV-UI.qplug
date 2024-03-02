@@ -74,7 +74,6 @@ end
 -- Defines the Controls used within the plugin
 function GetControls(props)
   local ctrls = {}
-
   table.insert(ctrls, {
     Name         = "code",
     ControlType  = "Text",
@@ -183,6 +182,14 @@ function GetControls(props)
     ControlType  = "Text",
     Style        = "ComboBox",
     PinStyle     = "Both",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "DeviceName",
+    ControlType  = "Text",
+    Style        = "ListBox",
+    PinStyle     = "Output",
     UserPin      = true,
     Count        = props['Display Count'].Value
   })
@@ -315,8 +322,8 @@ function GetControls(props)
     UserPin      = true,
     Count        = props['Display Count'].Value
   })
-
-  -- Third party display modules --
+  
+    -- Third party display modules --
   table.insert(ctrls, {
     Name         = "DisplayStatus",
     ControlType  = "Indicator",
@@ -334,9 +341,6 @@ function GetControls(props)
     PinStyle     = "Input",
     Count        = props['Display Count'].Value
   })
-
-
-
   return ctrls
 end
 
@@ -360,13 +364,13 @@ function GetControlLayout(props)
     Blue        = {32,32,233},
     Black       = {0,0,0},
     White       = {255,255,255},
-    Gray        = {96,96,96}
+    Gray        = {96,96,96},
+    LightGray   = {194,194,194}
   }
   
   layout["code"]={PrettyName="code",Style="None"}  
   
   if(CurrentPage == 'Setup') then
-
     table.insert(graphics,{Type="GroupBox",Text="Connect",Fill=colors.Background,StrokeWidth=1,CornerRadius=4,HTextAlign="Left",Position={5,5},Size={400,120}})
     table.insert(graphics,{Type="Image",Image=logo,Position={230,45},Size={170,34}})
   
@@ -413,29 +417,31 @@ function GetControlLayout(props)
       x = offset_[1]*math.floor(((i-1)/max_rows_)+.05)
       y = offset_[2]*math.floor(((i-1)%max_rows_)+.05)
   
-      table.insert(graphics,{Type="GroupBox",Text="Device "..i,Fill=colors.Background,StrokeWidth=1,CornerRadius=4,HTextAlign="Left",Position={14+x,5+y},Size={526,172}})
+      table.insert(graphics,{Type="GroupBox",Text="Device "..i                  ,Position={ 14+x,  5+y},Size={526,172},FontSize=12,HTextAlign="Left",Fill=colors.Background,StrokeWidth=1,CornerRadius=4})
       -- column 1
       table.insert(graphics,{Type="Text",Text="Device select"                   ,Position={ 24+x, 28+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
+      layout["DeviceName "..i] = {PrettyName="Device "..i.."~DeviceName"        ,Position={136+x, 28+y},Size={140, 16},FontSize=12,Style="Text",Color=colors.White,WordWrap=true,IsReadOnly=true}
       layout["DeviceSelect "..i] = {PrettyName="Device "..i.."~DeviceSelect"    ,Position={136+x, 28+y},Size={140, 16},FontSize=12,Style="ComboBox"}
       table.insert(graphics,{Type="Text",Text="Channel select"                  ,Position={ 24+x, 44+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
       layout["ChannelSelect "..i] = {PrettyName="Device "..i.."~ChannelSelect"  ,Position={136+x, 44+y},Size={140, 16},FontSize=12,Style="ComboBox"}
       table.insert(graphics,{Type="Text",Text="Playlist select"                 ,Position={ 24+x, 60+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
       layout["PlaylistSelect "..i] = {PrettyName="Device "..i.."~PlaylistSelect",Position={136+x, 60+y},Size={140, 16},FontSize=12,Style="ComboBox"}
-    
+      
       table.insert(graphics,{Type="Text",Text="Power"                           ,Position={ 24+x, 76+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
       layout["PowerOn "..i] = {PrettyName="Device "..i.."~PowerOn"              ,Position={134+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button",Text="ON"}
       layout["PowerOff "..i] = {PrettyName="Device "..i.."~PowerOff"            ,Position={170+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button",Text="OFF"}
       layout["PowerToggle "..i] = {PrettyName="Device "..i.."~PowerToggle"      ,Position={206+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button",Text="TOGGLE"}
       table.insert(graphics,{Type="Text",Text="Current content"                 ,Position={ 24+x, 92+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
-      layout["CurrentContent "..i] = {PrettyName="Device "..i.."~CurrentContent",Position={134+x, 92+y},Size={140, 32},FontSize=12,Style="Text",Color=colors.White,WordWrap=true}
-
+      layout["CurrentContent "..i] = {PrettyName="Device "..i.."~CurrentContent",Position={134+x, 92+y},Size={140, 32},FontSize=12,Style="Text",Color=colors.White,WordWrap=true,IsReadOnly=true}
+  
       table.insert(graphics,{Type="GroupBox",Text="Connected display"           ,Position={ 14+x,124+y},Size={262, 52},FontSize=10,HTextAlign="Left",Fill=colors.Transparent,StrokeWidth=1,CornerRadius=4})
       table.insert(graphics,{Type="Text",Text="Status"                          ,Position={ 24+x,138+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
       layout["DisplayStatus "..i] = {PrettyName="Device "..i.."~Display~Status" ,Position={134+x,128+y},Size={140, 30},FontSize=10,Style="Text",IsReadOnly=true,Color=colors.LightGray}
       table.insert(graphics,{Type="Text",Text="IP address"                      ,Position={ 24+x,156+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
       layout["DisplayIPAddress "..i] = {PrettyName="Device "..i.."~Display~IPAddress"
                                                                                 ,Position={134+x,158+y},Size={140, 16},FontSize=12,Style="Text",Color=colors.White}
-        -- column 2
+  
+      -- column 2
       table.insert(graphics,{Type="Text",Text="IP address"                      ,Position={276+x, 28+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
       layout["Address "..i] = {PrettyName="Device "..i.."~IPAddress"            ,Position={388+x, 28+y},Size={140, 16},FontSize=12,Style="Text",Color=colors.White}
       table.insert(graphics,{Type="Text",Text="MAC address"                     ,Position={276+x, 44+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
@@ -445,7 +451,7 @@ function GetControlLayout(props)
       table.insert(graphics,{Type="Text",Text="Device details"                  ,Position={276+x, 76+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
       layout["Details "..i] = {PrettyName="Device "..i.."~Details"              ,Position={388+x, 76+y},Size={140, 90},FontSize=12,HTextAlign="Left",Style="ListBox"}
    
-      layout["Logo "..i] = {PrettyName="Device "..i.."~PlaylistLogo"            ,Position={280+x, 92+y},Size={104, 74},Style="Button",Color=colors.Transparent}
+      layout["Logo "..i] = {PrettyName="Device "..i.."~PlaylistLogo"            ,Position={280+x, 92+y},Size={104, 74},Style="Button",Color=colors.Transparent,StrokeWidth=0}
    
     end
   

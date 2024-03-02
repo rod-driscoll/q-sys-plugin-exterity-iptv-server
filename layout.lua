@@ -70,6 +70,7 @@ elseif(CurrentPage == 'Devices') then
     table.insert(graphics,{Type="GroupBox",Text="Device "..i                  ,Position={ 14+x,  5+y},Size={526,172},FontSize=12,HTextAlign="Left",Fill=colors.Background,StrokeWidth=1,CornerRadius=4})
     -- column 1
     table.insert(graphics,{Type="Text",Text="Device select"                   ,Position={ 24+x, 28+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
+    layout["DeviceName "..i] = {PrettyName="Device "..i.."~DeviceName"        ,Position={136+x, 28+y},Size={140, 16},FontSize=12,Style="Text",Color=colors.White,WordWrap=true,IsReadOnly=true}
     layout["DeviceSelect "..i] = {PrettyName="Device "..i.."~DeviceSelect"    ,Position={136+x, 28+y},Size={140, 16},FontSize=12,Style="ComboBox"}
     table.insert(graphics,{Type="Text",Text="Channel select"                  ,Position={ 24+x, 44+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
     layout["ChannelSelect "..i] = {PrettyName="Device "..i.."~ChannelSelect"  ,Position={136+x, 44+y},Size={140, 16},FontSize=12,Style="ComboBox"}
@@ -81,7 +82,7 @@ elseif(CurrentPage == 'Devices') then
     layout["PowerOff "..i] = {PrettyName="Device "..i.."~PowerOff"            ,Position={170+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button",Text="OFF"}
     layout["PowerToggle "..i] = {PrettyName="Device "..i.."~PowerToggle"      ,Position={206+x, 76+y},Size={ 36, 16},FontSize=12,Style="Button",Text="TOGGLE"}
     table.insert(graphics,{Type="Text",Text="Current content"                 ,Position={ 24+x, 92+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
-    layout["CurrentContent "..i] = {PrettyName="Device "..i.."~CurrentContent",Position={134+x, 92+y},Size={140, 32},FontSize=12,Style="Text",Color=colors.White,WordWrap=true}
+    layout["CurrentContent "..i] = {PrettyName="Device "..i.."~CurrentContent",Position={134+x, 92+y},Size={140, 32},FontSize=12,Style="Text",Color=colors.White,WordWrap=true,IsReadOnly=true}
 
     table.insert(graphics,{Type="GroupBox",Text="Connected display"           ,Position={ 14+x,124+y},Size={262, 52},FontSize=10,HTextAlign="Left",Fill=colors.Transparent,StrokeWidth=1,CornerRadius=4})
     table.insert(graphics,{Type="Text",Text="Status"                          ,Position={ 24+x,138+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
@@ -100,7 +101,7 @@ elseif(CurrentPage == 'Devices') then
     table.insert(graphics,{Type="Text",Text="Device details"                  ,Position={276+x, 76+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
     layout["Details "..i] = {PrettyName="Device "..i.."~Details"              ,Position={388+x, 76+y},Size={140, 90},FontSize=12,HTextAlign="Left",Style="ListBox"}
  
-    layout["Logo "..i] = {PrettyName="Device "..i.."~PlaylistLogo"            ,Position={280+x, 92+y},Size={104, 74},Style="Button",Color=colors.Transparent}
+    layout["Logo "..i] = {PrettyName="Device "..i.."~PlaylistLogo"            ,Position={280+x, 92+y},Size={104, 74},Style="Button",Color=colors.Transparent,StrokeWidth=0}
  
   end
 

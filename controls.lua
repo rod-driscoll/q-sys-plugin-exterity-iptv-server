@@ -110,6 +110,14 @@ table.insert(ctrls, {
   Count        = props['Display Count'].Value
 })
 table.insert(ctrls, {
+  Name         = "DeviceName",
+  ControlType  = "Text",
+  Style        = "ListBox",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
   Name         = "ChannelSelect",
   ControlType  = "Text",
   Style        = "ComboBox",

@@ -29,6 +29,14 @@ For more detailed instructions on installing dependencies follow the instruction
 The compiled plugin file is located in this repo at [//demo/q-sys-plugin-exterity-iptv-server.qplug](https://github.com/rod-driscoll/q-sys-plugin-exterity-iptv-server/blob/main/demo/q-sys-plugin-exterity-iptv-server.qplug)\
 Copy the *.qplug file into "**%USERPROFILE%\Documents\QSC\Q-Sys Designer\Plugins**" then drag the plugin into a design.
 
+### TV channel logos
+
+The plugin will dowload and display TV channel logos if a config file is loaded onto the core with either image files or urls of the channel images.
+
+Create a new folder in the "media" folder of the core and call it logos, then place the file [//demo/logos/channel-logos.json](https://github.com/rod-driscoll/q-sys-plugin-exterity-iptv-server/blob/main/demo/logos/channel-logos.json) into the folder.
+
+When a TV channel is selected in the plugin; the plugin searches for an entry in /media/logos/channel-logos.json with the exact same name as the tv channel, then if there is an entry with the atttribute "file" the plugin will try to load that image file from the /media/logos/ folder, if "file" is blank then the plugin will try to download the file from the location in "url" and keep it in the /media/logos/ directory.
+
 ## Developing code
 
 Instructions and resources for Q-Sys plugin development is available at:

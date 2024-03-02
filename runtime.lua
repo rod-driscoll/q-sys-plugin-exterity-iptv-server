@@ -18,7 +18,9 @@
 	
 	-- Device specific
 	local Path = 'api/public/control'
-
+  local config_filepath = (System.IsEmulating and 'design' or 'media')..'/logos/channel-logos.json'
+  local logos_filepath = (System.IsEmulating and 'design' or 'media')..'/logos/'
+local junk = ''
 	local devices = {}
 	local channels = {}
 	local playlists = {}
@@ -158,18 +160,20 @@
       print('sending '..command_..' to display component, type:', device['type'])
       SetDisplayCommand(display, command_, true)
     else -- not a decoder, so tell the native device module to power it
-      PostRequest("/devices/"..device['mac'].."/commands/"..command, '') -- this will reset the channel
+      PostRequest(Path.."/devices/"..device['mac'].."/commands/"..command, '') -- this will reset the channel
       --actually don't power it becaue it comes up in the wrong mode
     end
   end
 	
 	function UpdateDisplayModule(i, device) -- device is a single device
-    local display_ = Properties['Display Code Name Prefix'].Value -- e.g. 'Display_'
-    display_ = display_..i                                         -- e.g. 'Display_1'
-    display_ = Component.New(display_)
-    --print('display_ component: '..(display_ ~= nil and 'exists' or 'is nil'))
+    local component_id = Properties['Display Code Name Prefix'].Value..i                                         -- e.g. 'Display_1'
+    local display_ = Component.New(component_id)
+    if display_ then
+      --print('display['..i..'] #Controls: '..#Component.GetControls(display_))
+      display_ = (#Component.GetControls(display_))>0 and display_ or nil
+    end
     display_ = (device['platform_name'] == nil or (string.len(device['platform_name']) < 1)) and display_
-    --print('display_ enabled: '..tostring(display_ ~= nil))
+    print('UpdateDisplayModule('..i..') - ['..component_id..']: '..(display_==nil and 'is nil' or 'exists'))
     Controls['EnableDisplay'][i].Boolean = display_ ~= nil
 		--Controls['DisplayIPAddress'][i].String = display_ ~= nil and device['ip'] or ''
 		Controls['DisplayIPAddress'][i].IsInvisible = display_ == nil
@@ -186,14 +190,11 @@
     
     Controls['PowerToggle'][i].EventHandler = function(ctl) -- power_on
     --status_ = GetPowerAndChannel(data)
-      if ctl.Boolean then
-        SetDevicePower(display_, device, i, 'Display_on')
-      else
-        SetDevicePower(display_, device, i, 'Display_off')
-      end
+      SetDevicePower(display_, device, i,  ctl.Boolean and 'Display_on' or 'Display_off')
     end  
 
     if display_ then 
+      print("display["..i.."] module exists - updating controls")
       if display_['IPAddress'] then         
         display_['IPAddress'].String = device['ip']
         Controls['DisplayIPAddress'][i].String = display_['IPAddress'].String
@@ -233,11 +234,13 @@
         end
       end
     else 
+      print("display["..i.."] module doesn't exist - updating controls")
       Controls['DisplayIPAddress'][i].IsInvisible = true
       Controls['DisplayIPAddress'][i].String = ''
       --Controls['DisplayStatus'][i].IsInvisible = true
       Controls['DisplayStatus'][i].Value = 3 -- 3: not present
       Controls['DisplayStatus'][i].String = 'No display connected'
+      --display_['IPAddress'].String = ''
     end
   end 
 
@@ -248,6 +251,7 @@
 		Controls['Online'][i].Boolean = (device['status'] == 'online')
 		Controls['Details'][i].Choices = helper.UpdateItems(device)
 		Controls['DeviceSelect'][i].String = device['name']
+		Controls['DeviceName'][i].String = device['name']
 		Controls['HasDecoder'][i].Boolean = (string.len(device['platform_name']) > 0)
     UpdateDisplayModule(i, device)
     if string.len(Controls['Details'][i].String) > 0 then
@@ -262,43 +266,49 @@
 		--CheckContent(device)
 		--print('trying to update channel from device')
 		local status_ = {}
-
 		if type(device.content) == "table" then
 			status_ = GetPowerAndChannel(device)
-			print('channel: '..status_.channel..', is_tv_playlist: '..tostring(status_.is_tv_playlist)..', power: '..tostring(status_.power)..', playlist: '..tostring(status_.playlist)..', signage: '..tostring(status_.signage))    
+			if DebugFunction then print('channel: '..status_.channel..', is_tv_playlist: '..tostring(status_.is_tv_playlist)..', power: '..tostring(status_.power)..', playlist: '..tostring(status_.playlist)..', signage: '..tostring(status_.signage)) end
 			Controls['PlaylistSelect'][i].String = status_.playlist
 			Controls['PowerOn'][i].Boolean = status_.power
 			Controls['PowerOff'][i].Boolean = not status_.power
 			
 			if status_.power then -- power on
-        if status_.playlist then
+        if status_.playlist and #status_.playlist>0 then
+          if DebugFunction then print('is playlist: '..#status_.playlist) end
           local kvp_  = { ['name'] = status_.playlist }
           local p, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
           if p then Controls['Logo'][i].Style = playlist_images[p] end
           Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
-        else 
+        else
+          if DebugFunction then print('not playlist: '..status_.playlist) end
           Controls['Logo'][i].Style = ""
           Controls['Logo'][i].Color = "#808080" -- grey
         end
 				if string.len(status_.channel) > 0 and not status_.jobs_pending then -- channel exists, set feedback
-          print('channel not empty, power is on, no jobs pending')
+          if DebugFunction then print('channel not empty, power is on, no jobs pending') end
           Controls['ChannelSelect'][i].String = status_.channel 
           Controls['CurrentContent'][i].String = status_.channel
 					Controls['PowerOnChannel'][i].String = status_.channel
+          --tv_channel_logos
+          get_tv_channel_image(status_.channel, Controls['Logo'][i])
+          Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
 				else -- need to force it to a channel
 					if status_.is_tv_playlist and Controls['ChannelSelect'][i] and string.len(Controls['ChannelSelect'][i].String) > 0 then --it's on a blank channel, have to clear selector before forcing it
 						if string.len(Controls['PowerOnChannel'][i].String) < 1 then -- the power on channel is blank
 							Controls['PowerOnChannel'][i].String = Controls['ChannelSelect'][i].String -- give it a channel to return to in a moment
 						end
-						if data.status == 'online' then
-							print("setting power on channel - because the system doesn't recall the previous channel on power up")
-							print("playlist: "..status_.playlist..", tv playlist: "..tv_chanel_playlist_id)
+						if device.status == 'online' then
+							if DebugFunction then 
+                print("setting power on channel - because the system doesn't recall the previous channel on power up")
+                print("playlist: "..status_.playlist)
+              end
 							Controls['ChannelSelect'][i].String = "" -- clear the string so we can force an event when we set it again
 							Controls['ChannelSelect'][i].String = Controls['PowerOnChannel'][i].String -- force the Event
 							Controls['CurrentContent'][i].String = Controls['PowerOnChannel'][i].String
 						end
 					elseif not status_.is_tv_playlist then
-						print('not in TV channel playlist: '..status_.playlist..', clearing the current and startup channels')
+						if DebugFunction then print('not in TV channel playlist: '..status_.playlist..', clearing the current and startup channels') end
             Controls['ChannelSelect'][i].String = "" -- clear the strings
             --Controls['ChannelSelect'][i].String = status_.playlist -- try inserting the playlist name
             Controls['PowerOnChannel'][i].String = ""
@@ -320,11 +330,11 @@
 				end
 			end
 			if string.len(status_.channel) > 0 and not status_.jobs_pending then
-				print('channel not empty')
+				if DebugFunction then print('channel not empty') end
 				Controls['PowerOnChannel'][i].String = status_.channel
 			end
     else 
-    	print("UpdateDevice - Type("..type(device.content)..") doesn't contain any channel or playlist data")
+    	if DebugFunction then print("UpdateDevice - Type("..type(device.content)..") doesn't contain any channel or playlist data") end
       Controls['Logo'][i].Style = ""
       Controls['Logo'][i].Color = "#708090" -- slate grey
 			Controls['PowerOn'][i].Boolean = false
@@ -335,30 +345,26 @@
 		-- EventHandlers
 		--print('assigning EventHandlers')
 		Controls['ChannelSelect'][i].EventHandler = function(ctl) -- channel select
-			print('channel selected "'..ctl.String..'" for '..device['name']..' type: '..device['type']..' platform: '..device['platform_name'])
+			if DebugFunction then print('channel selected['..i..'] "'..ctl.String..'" for '..device['name']..' type: '..device['type']..' platform: '..device['platform_name']) end
 			if string.len(ctl.String) > 0 then
 				--get channel uri
 				local kvp_  = { ['name'] = ctl.String }
-				local i, channel_ = helper.GetArrayItemWithKey(channels, kvp_)
+				local j, channel_ = helper.GetArrayItemWithKey(channels, kvp_)
 				if channel_~=nil then
-					PostRequest("/devices/"..device['mac'].."/commands/channel", '{"uri":"'..channel_['uri']..'"}')
+					PostRequest(Path.."/devices/"..device['mac'].."/commands/channel", '{"uri":"'..channel_['uri']..'"}')
           Controls['CurrentContent'][i].String = ctl.String
-        else
-					print('channel', type(i))
 				end
 			end
 		end
     
     Controls['PlaylistSelect'][i].EventHandler = function(ctl) -- playlist select 
-      print('playlist selected',  ctl.String..'" for '..device['name']..' type: '..device['type']..' platform: '..device['platform_name'])
+      if DebugFunction then print('playlist selected',  ctl.String..'" for '..device['name']..' type: '..device['type']..' platform: '..device['platform_name']) end
       if string.len(ctl.String) > 0 then
         --get playlist id
         local kvp_  = { ['name'] = ctl.String }
-        local i, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
+        local j, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
         if playlist_~=nil and playlist_['id']~=nil then
-          PostRequest("/devices/"..device['mac'].."/playlists/"..playlist_['id'], '')
-        else
-          print('channel', type(i))
+          PostRequest(Path.."/devices/"..device['mac'].."/playlists/"..playlist_['id'], '')
         end
       end
     end
@@ -386,7 +392,8 @@
     end
 		if device and device.name then
       Controls['DeviceSelect'][i].String = device['name'] -- assign it to a device
-      --print('assigned ['..i..'] name:', device[i]['name'], 'to device', Controls['DeviceSelect'][i].String..i)
+			Controls['DeviceName'][i].String = device['name']
+		  --print('assigned ['..i..'] name:', device[i]['name'], 'to device', Controls['DeviceSelect'][i].String..i)
       UpdateDevice(i, device)
     end
   end
@@ -500,6 +507,140 @@
         UpdateDeviceData(i)
       end ]]
 	end
+  
+	-----------------------------------------------------------------------------------------------------------------------
+	-- TV channel logos
+	-----------------------------------------------------------------------------------------------------------------------
+  local tv_channel_logos = {
+    Nightlife = {
+      url = "https://www.nightlife.com.au/wp-content/uploads/2021/11/LOGO_BRAND_LIGHT.png",
+      file = ""
+      -- "{\"IconData\":\"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\"}",
+    },
+    Keno = {
+      url = "https://www.keno.com.au/assets/images/logo-keno.svg",
+      file= ""
+    },
+    ["ABCTV HD"] = {
+      url = "https://static.wikia.nocookie.net/logopedia/images/2/25/ABC_TV_2021.svg/revision/latest?cb=20210101035040",
+      file= ""
+    }
+  }
+
+  function write_config(path, tbl)
+    local json_string = rapidjson.encode(tbl)
+    if DebugFunction then print("write_config size: "..#json_string) end
+    --print("write_config: "..json_string)
+    if DebugFunction then print("config type: "..type(tbl)) end
+    --helper.TablePrint(tbl)
+    local file = io.open(path, "w")
+    file:write(json_string)
+    file:close()
+  end
+
+  function get_filename_from_url(url)
+    if DebugFunction then print("get_filename_from_url: "..url) end    
+    local last_dot_index = url:find("%.[^%.]*$")
+    local last_slash_index = url:sub(1, last_dot_index - 1):find("/[^/]*$")
+    local filename_ = url:sub(last_slash_index+1)
+    --if DebugFunction then print("filename: "..filename_) end
+    local filename_ = filename_:match("^[^?=%/]+")
+    --if DebugFunction then print("filename: "..filename_) end
+    if DebugFunction then print("filename: "..HttpClient.DecodeString(filename_)) end
+   return filename_
+  end
+
+  function save_logo_to_file(name, data)
+    local f = io.open(logos_filepath..name, "wb") 
+    f:write(data)
+    f:close()
+  end
+
+  function get_tv_channel_logo(logo_tbl, key, control)
+    url = logo_tbl[key]["url"]
+    if DebugFunction then print('get_tv_channel_logo: '..url) end
+    HttpClient.Download({ 
+      Url          = url,
+      Method       = "GET",
+      Headers      =  { ["Accept"] = "*/*" } ,
+      User         = Controls["Username"].String or "",  -- Only needed if device requires a sign in
+      Password     = Controls["Password"].String or "",  -- Only needed if device requires a sign in
+      Timeout      = RequestTimeout,
+      EventHandler = function(tbl, code, data, err, headers)
+        if DebugFunction then print("TV logo HTTP Response code: " .. code) end
+        if code == 200 then  -- Vaild response
+          if DebugFunction then 
+            print('received image for '..key..' #'..#data)
+            print('encoded image for '..key..' url: '..url)
+          end
+          local filename_ = get_filename_from_url(url)
+          local image_ = rapidjson.encode({IconData = Crypto.Base64Encode(data)})
+          if control then control.Style = image_ end
+          if DebugFunction then print('encoded image for '..key..', '..filename_) end
+          logo_tbl[key]["file"] = filename_
+          write_config(config_filepath, logo_tbl)
+          save_logo_to_file(filename_, data)
+        end
+      end
+    })
+  end
+
+  function get_tv_channel_image(name, control)
+    if DebugFunction then print('get_tv_channel_image: '..name) end
+    --print("Nightlife url: "..tv_channel_logos.Nightlife.url)
+    if tv_channel_logos['FoxSports503HD'] then
+      --print("FoxSports503HD url: "..tv_channel_logos.FoxSports503HD.url)
+    else 
+      if DebugFunction then print('tv channel config file not loaded') end
+    end
+    if tv_channel_logos[name] then 
+      if DebugFunction then print('channel '..name..' logo exists') end
+      if tv_channel_logos[name].file and tv_channel_logos[name].file ~= '' then
+        if DebugFunction then print('get_tv_channel_image: '..tv_channel_logos[name].file) end
+        local f = io.open(logos_filepath..tv_channel_logos[name].file, "rb")   
+        if f~=nil then -- file exists
+          local data_ = f:read("*a")
+          if data_ and #data_ then
+            control.Style = rapidjson.encode({IconData = Crypto.Base64Encode(data_)})
+          end
+          io.close(f)
+        end
+      elseif tv_channel_logos[name]["url"] then
+        --print('url: '..get_tv_channel_image[name]["url"]) 
+        tv_channel_logos[name]["file"] = ''
+        get_tv_channel_logo(tv_channel_logos, name, control)
+      end
+    end
+  end
+
+  --Controls.refresh.EventHandler = function(ctl)
+    --get_logo(Controls.url.String)
+    --get_tv_channel_image("ESPN HD")
+    --get_tv_channel_image("Nightlife")
+  --end
+
+  function read_config(path, file)
+    if DebugFunction then print('read_config: '..path) end
+    local f = io.open(path, "r")   
+    if f~=nil then -- file exists
+      io.close(f)
+      local config = rapidjson.load(path)
+      if DebugFunction then
+        print("config loaded size: "..#config)
+        print("config type: "..type(config))
+      end --helper.TablePrint(config)
+      --print("nightlife url: "..config.Nightlife.url)
+      return config
+    else 
+      if DebugFunction then print('file not found') end
+      return nil
+    end
+  end
+
+  function load_tv_channel_images()   
+    tv_channel_logos = read_config(config_filepath) or tv_channel_logos
+  end
+
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Parse channels
 	-----------------------------------------------------------------------------------------------------------------------
@@ -532,6 +673,8 @@
     Controls.Channel_details.Choices = helper..UpdateItemsInArray(channel, keys_)  --this is an option to display less data ]]
     local details_ = helper.UpdateItems(channel)
     Controls.ChannelDetails.Choices = helper.UpdateItems(channel)
+    get_tv_channel_image(channel.name, Controls.PlaylistLogo)
+
     if DebugFunction then 
       print('--------------------------------------')
       --helper.TablePrint(details_)
@@ -677,7 +820,7 @@
 
 	-- Function reads response code, sets status and prints received data.
 	function ResponseHandler(tbl, code, data, err, headers)
-		if DebugFunction and DebugRx then print("HTTP Response Handler called. Code: " .. code) end
+		if DebugFunction and DebugRx then print("HTTP Response Code: " .. code) end
 		if code == 200 then  -- Vaild response
 			ReportStatus("OK")
 			if DebugRx then print("Rx: ", data) end
@@ -700,7 +843,7 @@
 
 	-- Send an HTTP GET request to the defined
 	function GetRequest(path, headers)
-		if DebugFunction and DebugTx then print("GetRequest() called: /"..path) end
+		if DebugFunction and DebugTx then print("GetRequest("..path..") called") end
 		-- Define any HTTP headers to sent
 		headers = headers or {
 			--["Content-Type"] = "text/html",
@@ -729,7 +872,7 @@
 
 	-- Send a POST request to the HTTP server
 	function PostRequest(path, data)
-		if DebugFunction then print("PostRequest() called") end
+		if DebugFunction then print("PostRequest("..path.."): "..(data or '')) end
 		-- Define any HTTP headers to sent
 		headers = {  
 			["Accept"] = "*/*"
@@ -763,7 +906,7 @@
       print("initialize() Called") 
       helper.GetVersion()
     end
-    
+    load_tv_channel_images()
     for i=1, #Controls['DeviceSelect'] do
       Controls['DeviceSelect'][i].EventHandler = function(ctl) -- device select
         print('device selected',  ctl.String) -- e.g. 'Bar 1', we don't know what module it came from       
@@ -777,7 +920,7 @@
     if Controls.IPAddress.String~=nil and string.len(Controls.IPAddress.String)>0 then
       --GetRequest(Path.."/devices")
       QueryAll()
-      Timer.CallAfter(function() QueryAll() end, 2) --wait 1 sec to avoid maximum execution
+      Timer.CallAfter(function() QueryAll() end, 5) --wait x sec to avoid maximum execution
       if not QueryTimer:IsRunning() then
         QueryTimer.EventHandler = QueryAll
         QueryTimer:Start(Properties["Poll Interval"].Value)
