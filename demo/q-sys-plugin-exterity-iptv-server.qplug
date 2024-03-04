@@ -546,12 +546,16 @@ if Controls then
                 end
               end          
             end
-            if device.content.standby==nil then print('standby is nil') end
             --print('standby state:', device.content.standby, 'type:', type(device.content.standby))
             if type(device.content.standby) == "string" then
               return_.power = not (device.content.standby == "Standby") -- "Unknown" is ON
             elseif type(device.content.standby) == "boolean" then
               return_.power = not device.content.standby
+            elseif device.content.standby==nil then 
+              print('standby is nil')
+              if device['type']~=nil and device['type']=='Receiver' then 
+                return_.power = true -- can't turn receiveres off
+              end
             end
           end
         end
@@ -746,7 +750,7 @@ if Controls then
           else
             if DebugFunction then print('not playlist: '..status_.playlist) end
             Controls['Logo'][i].Style = ""
-            Controls['Logo'][i].Color = "#808080" -- grey
+            --Controls['Logo'][i].Color = "#808080" -- grey
           end
   				if string.len(status_.channel) > 0 and not status_.jobs_pending then -- channel exists, set feedback
             if DebugFunction then print('channel not empty, power is on, no jobs pending') end
@@ -789,8 +793,8 @@ if Controls then
   					Controls['ChannelSelect'][i].String = status_.channel -- clear the string so we can force an event when we set it again
   					Controls['CurrentContent'][i].String = status_.channel
             Controls['Logo'][i].Style = ""
-            Controls['Logo'][i].Color = "#000000" -- black
-  				end
+            --Controls['Logo'][i].Color = "#000000" -- black
+  				end 
   			end
   			if string.len(status_.channel) > 0 and not status_.jobs_pending then
   				if DebugFunction then print('channel not empty') end
@@ -799,7 +803,7 @@ if Controls then
       else 
       	if DebugFunction then print("UpdateDevice - Type("..type(device.content)..") doesn't contain any channel or playlist data") end
         Controls['Logo'][i].Style = ""
-        Controls['Logo'][i].Color = "#708090" -- slate grey
+        --Controls['Logo'][i].Color = "#708090" -- slate grey
   			Controls['PowerOn'][i].Boolean = false
   			Controls['PowerOff'][i].Boolean = false 
         Controls['CurrentContent'][i].String = ""
@@ -961,8 +965,19 @@ if Controls then
   	end
   
   	function ParseDevices(data)  -- data is an array of devices
-  		if DebugFunction then print('ParseDevices', #data.. ' devices found') end
-  		devices = data
+  		if DebugFunction then print('ParseDevices', #data.. ' devices found') end 
+      for k,v in pairs(data) do
+        if devices[k] == nil then
+          devices[k] = v
+        else
+          for k1,v1 in pairs(v) do
+            if not (k1 == 'jobs' or k1 == 'content') then -- don't overwrite jobs and content with null
+              devices[k][k1] = v1
+            end
+          end
+        end
+      end 
+  		--devices = data
   		UpdateDeviceNames(devices)
         --[[ DON'T iterate through devices and assign devices, because it causes a maximum execution error
         -- let it poll the devices one at a time so each device is assigned on a different task
@@ -1008,8 +1023,8 @@ if Controls then
       local filename_ = url:sub(last_slash_index+1)
       --if DebugFunction then print("filename: "..filename_) end
       local filename_ = filename_:match("^[^?=%/]+")
-      --if DebugFunction then print("filename: "..filename_) end
-      if DebugFunction then print("filename: "..HttpClient.DecodeString(filename_)) end
+      local filename_ = HttpClient.DecodeString(filename_)
+      if DebugFunction then print("filename: "..filename_) end
      return filename_
     end
   
@@ -1047,20 +1062,21 @@ if Controls then
         end
       })
     end
-  
+   
     function get_tv_channel_image(name, control)
-      if DebugFunction then print('get_tv_channel_image: '..name) end
+    local name_ = string.gsub(name, "^%s*(.-)%s*$", "%1")
+      if DebugFunction then print("get_tv_channel_image: '"..name_.."'") end
       --print("Nightlife url: "..tv_channel_logos.Nightlife.url)
       if tv_channel_logos['FoxSports503HD'] then
         --print("FoxSports503HD url: "..tv_channel_logos.FoxSports503HD.url)
       else 
         if DebugFunction then print('tv channel config file not loaded') end
       end
-      if tv_channel_logos[name] then 
-        if DebugFunction then print('channel '..name..' logo exists') end
-        if tv_channel_logos[name].file and tv_channel_logos[name].file ~= '' then
-          if DebugFunction then print('get_tv_channel_image: '..tv_channel_logos[name].file) end
-          local f = io.open(logos_filepath..tv_channel_logos[name].file, "rb")   
+      if tv_channel_logos[name_] then 
+        if DebugFunction then print('channel '..name_..' logo exists') end
+        if tv_channel_logos[name_].file and tv_channel_logos[name_].file ~= '' then
+          if DebugFunction then print('get_tv_channel_image: '..tv_channel_logos[name_].file) end
+          local f = io.open(logos_filepath..tv_channel_logos[name_].file, "rb")   
           if f~=nil then -- file exists
             local data_ = f:read("*a")
             if data_ and #data_ then
@@ -1068,10 +1084,10 @@ if Controls then
             end
             io.close(f)
           end
-        elseif tv_channel_logos[name]["url"] then
-          --print('url: '..get_tv_channel_image[name]["url"]) 
-          tv_channel_logos[name]["file"] = ''
-          get_tv_channel_logo(tv_channel_logos, name, control)
+        elseif tv_channel_logos[name_]["url"] then
+          --print('url: '..get_tv_channel_image[name_]["url"]) 
+          tv_channel_logos[name_]["file"] = ''
+          get_tv_channel_logo(tv_channel_logos, name_, control)
         end
       end
     end
@@ -1386,6 +1402,7 @@ if Controls then
         Timer.CallAfter(function() QueryAll() end, 5) --wait x sec to avoid maximum execution
         if not QueryTimer:IsRunning() then
           QueryTimer.EventHandler = QueryAll
+          --if Device.IsEmulating then QueryTimer:Start(10) end
           QueryTimer:Start(Properties["Poll Interval"].Value)
         else
           print("Query timer is already running")
