@@ -1,6 +1,9 @@
 --[[
 20231029 v1.0 Rod Driscoll <rod@theavitgroup.com.au>
 20240227 v1.0.1 Rod Driscoll <rod@theavitgroup.com.au>
+20240316 v1.0.2 Rod Driscoll <rod@theavitgroup.com.au>
+    - Added obj.copy
+
 
 These functions were created as i learnt Lua so chances are that many of them
  will become deprecated as I learn easier ways to manipulate tables
@@ -9,12 +12,12 @@ These functions were created as i learnt Lua so chances are that many of them
 local obj = {}
 
 obj.GetVersion = function()
-    local ver_ = 'helpers v1.0.1 20240227'
+    local ver_ = 'helpers v1.0.1 20240316'
     print(ver_)
     return ver_
 end
 
----------------------------------------------------------------------------
+----------------------------------------------------------------------------
 -- utility functions
 ----------------------------------------------------------------------------
 obj.TablePrint = function(tbl, indent)
@@ -262,7 +265,37 @@ obj.wrap = function(str, limit, indent, indent1)
                                 return "\n"..indent..word
                               end
                             end)
-  end
+end
+    
+-- -@param o1 any|table First object to compare
+-- -@param o2 any|table Second object to compare
+-- -@param ignore_mt boolean True to ignore metatables (a recursive function to tests tables inside tables)
+obj.equals = function(o1, o2, ignore_mt)
+    if o1 == o2 then return true end
+    local o1Type = type(o1)
+    local o2Type = type(o2)
+    if o1Type ~= o2Type then return false end
+    if o1Type ~= 'table' then return false end
+    if not ignore_mt then
+        local mt1 = getmetatable(o1)
+        if mt1 and mt1.__eq then
+            --compare using built in method
+            return o1 == o2
+        end
+    end
+    local keySet = {}
+    for key1, value1 in pairs(o1) do
+        local value2 = o2[key1]
+        if value2 == nil or equals(value1, value2, ignore_mt) == false then
+            return false
+        end
+        keySet[key1] = true
+    end
+    for key2, _ in pairs(o2) do
+        if not keySet[key2] then return false end
+    end
+    return true
+end
 ----------------------------------------------------------------------------
 -- Initialisation
 ----------------------------------------------------------------------------
