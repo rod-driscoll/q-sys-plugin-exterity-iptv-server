@@ -54,21 +54,18 @@ The files in "./testing/" are for dev only and may not be the most current code,
 
 ## Features
 
-* Get devices
-* Get channels
-* Get playlists
-* Get playlist logos
+* Get and select devices
+* Get and select channels
+* Get and display channel logos
+* Get and select playlists
+* Get and display playlist logos
+* Power endpoints (only tested with Samsung MDCP plugin)
 
 ### Features not implemented
 
-* Power endpoint
 * Authentication
 
 ### Features not tested
-
-* Trigger channel
-* Trigger playlist
-* Trigger power
 
 ## References
 
