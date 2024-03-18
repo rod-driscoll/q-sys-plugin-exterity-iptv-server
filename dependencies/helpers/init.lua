@@ -62,7 +62,7 @@ obj.dump = function(o)
         for k,v in pairs(o) do
             --print('type(k):',type(k),'type(v):',type(v))
             if type(k) ~= 'number' then k = '"'..k..'"' end
-            s = s .. '['..k..'] = ' .. dump(v) .. ','
+            s = s .. '['..k..'] = ' .. obj.dump(v) .. ','
         end
         s = s .. '} '
         --print(s)
@@ -286,7 +286,7 @@ obj.equals = function(o1, o2, ignore_mt)
     local keySet = {}
     for key1, value1 in pairs(o1) do
         local value2 = o2[key1]
-        if value2 == nil or equals(value1, value2, ignore_mt) == false then
+        if value2 == nil or obj.equals(value1, value2, ignore_mt) == false then
             return false
         end
         keySet[key1] = true
