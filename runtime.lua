@@ -398,7 +398,11 @@
       print("GetDeviceData("..i.."): ".. Controls['DeviceSelect'][i].String)
       local kvp_  = { ['name'] = Controls['DeviceSelect'][i].String }
       local j, device_ = helper.GetArrayItemWithKey(devices, kvp_)
-      print("GetArrayItemWithKey() ["..j.."]: ".. device_.name)
+      if device_==nil then
+        print("GetDeviceData("..i.."): ".. Controls['DeviceSelect'][i].String.." NOT FOUND in "..#devices.. " devices") 
+      else
+        print("GetArrayItemWithKey() ["..j.."]: ".. device_.name)
+      end
       return j, device_
     end
   end
@@ -474,18 +478,18 @@
         --local decoder_types = { 'UHD Decoder', 'Receiver', 'Media Player' } -- 'sssfp5Lfd'
         Controls['PowerOff'][i].EventHandler = function(ctl) -- power_off
           local _, device_ = GetDeviceData(i)
-          SetDevicePower(displays[i], device_, 'Display_off')
+          if device_~=nil then SetDevicePower(displays[i], device_, 'Display_off') end
         end   
         
         Controls['PowerOn'][i].EventHandler = function(ctl) -- power_on
           local _, device_ = GetDeviceData(i)
-          SetDevicePower(displays[i], device_, 'Display_on')
+          if device_~=nil then SetDevicePower(displays[i], device_, 'Display_on') end
         end
         
         Controls['PowerToggle'][i].EventHandler = function(ctl) -- power_on
           --status_ = GetPowerAndChannel(data)
           local _, device_ = GetDeviceData(i)
-          SetDevicePower(displays[i], device_,  ctl.Boolean and 'Display_on' or 'Display_off')
+          if device_~=nil then SetDevicePower(displays[i], device_,  ctl.Boolean and 'Display_on' or 'Display_off') end
         end  
 
         if displays[i]['IPAddress']~=nil then
@@ -717,7 +721,8 @@
 	-----------------------------------------------------------------------------------------------------------------------
 	function ParseChannels(data) -- data is an array of channels
 		if DebugFunction then print('channel data response: '..#data..' channels found') end	
-    if not helper.equals(channels, data, false) then
+    if not helper.equals(channels, data, false)
+        or (Controls["ChannelSelect"][1]~=nil and #Controls["ChannelSelect"][1].Choices==0) then
       print('updating channels')
       channels = data
       local names_ = {}
@@ -729,7 +734,7 @@
         end   
       end  
       Controls.ChannelNames.Choices = names_
-      for i=1, #devices do -- update channel list in the device modules
+      for i=1, #Controls['ChannelSelect'] do -- update channel list in the device modules
         if Controls["ChannelSelect"][i]~=nil then -- if device component exists
           Controls["ChannelSelect"][i].Choices = names_ -- update the device selector choices
         end
@@ -738,7 +743,7 @@
         end
       end
     else
-      print('channels do not ned updating: '..#channels..' channels exist')
+      print('channels do not need updating: '..#channels..' channels exist')
     end
   end
 
@@ -775,7 +780,7 @@
         UpdatePlaylistControlDetails(b.name)
       end
       Controls.PlaylistNames.Choices = names_
-      for i=1, #devices do -- update list in the device modules
+      for i=1, #Controls['PlaylistSelect'] do -- update channel list in the device modules
         if Controls['PlaylistSelect'][i]~=nil then
           Controls['PlaylistSelect'][i].Choices = names_ -- update the device selector choices
         end
