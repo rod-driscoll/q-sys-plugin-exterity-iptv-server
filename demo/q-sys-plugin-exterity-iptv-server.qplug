@@ -962,11 +962,11 @@ if Controls then
             local kvp_  = { ['name'] = ctl.String }
             local j, channel_ = helper.GetArrayItemWithKey(channels, kvp_)
             if channel_~=nil then
-              Controls['CurrentContent'][i].String = ctl.String
-              Controls['Logo'][i].Style = ""
-              if Controls['PowerOn'][i].Boolean then
-                get_tv_channel_image(channel_, Controls['Logo'][i])
-              end
+                Controls['CurrentContent'][i].String = ctl.String
+                Controls['Logo'][i].Style = ""
+                if Controls['PowerOn'][i].Boolean then
+                  get_tv_channel_image(ctl.String, Controls['Logo'][i])
+                end
               PostRequest(Path.."/devices/"..device_['mac'].."/commands/channel", '{"uri":"'..channel_['uri']..'"}')
             end
           end
