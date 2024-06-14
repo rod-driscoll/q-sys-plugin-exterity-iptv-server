@@ -146,6 +146,7 @@
     print('display type('..type(display)..')')
     --if string.len(device['platform_name']) > 0 then -- it is a decoder so blank it
     local command_=nil
+    local command2_=nil
     if display then -- a display module with the command is connected to the display so use it for power
       if command=='Display_off' then 
         if display['PanelOff']~=nil then 
@@ -156,12 +157,19 @@
       elseif command=='Display_on' then 
         if display['PanelOn']~=nil then 
           command_ = 'PanelOn'
+          if display['PowerStatus']~=nil and not display['PowerStatus'].Boolean then 
+            command2_ = 'PowerOn'
+          end
         elseif display['PowerOn']~=nil then 
           command_ = 'PowerOn'
         end
       end
     end
     if command_ then
+      if command2_ then
+        print('sending '..command2_..' to display component, type:', device['type'])
+        SetDisplayCommand(display, command2_, true)
+      end
       print('sending '..command_..' to display component, type:', device['type'])
       SetDisplayCommand(display, command_, true)
     else -- not a decoder, so tell the native device module to power it
@@ -184,12 +192,17 @@
       if display_['IPAddress'] then         
         display_['IPAddress'].String = device['ip']
         Controls['DisplayIPAddress'][i].String = display_['IPAddress'].String
-
       end
+      -- power
+      local power_status_ = false
       if display_['PanelStatus'] then 
-        Controls['PowerToggle'][i].Boolean = display_['PanelStatus'].Boolean
-        Controls['PowerOn'    ][i].Boolean = display_['PanelStatus'].Boolean
-        Controls['PowerOff'   ][i].Boolean = not display_['PanelStatus'].Boolean
+        if display_['PowerStatus'] then 
+          power_ = display_['PanelStatus'].Boolean and display_['PowerStatus'].Boolean 
+        else
+          power_ = display_['PanelStatus'].Boolean
+        end
+      elseif display_['PowerStatus'] then
+        power_ = display_['PowerStatus'].Boolean
       end
       if display_['PowerStatus'] then 
         if not display_['PanelStatus'] then 
@@ -198,6 +211,10 @@
           --end
         end
       end
+      Controls['PowerToggle'][i].Boolean = power_
+      Controls['PowerOn'    ][i].Boolean = power_
+      Controls['PowerOff'   ][i].Boolean = not power_
+      -- connection
       if display_['Status'] then 
         Controls['DisplayStatus'][i].Value = display_['Status'].Value
         Controls['DisplayStatus'][i].String = display_['Status'].String
@@ -211,6 +228,7 @@
       Controls['DisplayStatus'][i].String = 'No display connected'
       --display_['IPAddress'].String = ''
     end
+    return display_
   end 
 
 	function UpdateDevice(i, device) -- device is a single device
@@ -222,7 +240,7 @@
 		Controls['DeviceSelect'][i].String = device['name']
 		Controls['DeviceName'][i].String = device['name']
 		Controls['HasDecoder'][i].Boolean = (string.len(device['platform_name']) > 0)
-    UpdateDisplayModule(i, device)
+    local display_ = UpdateDisplayModule(i, device)
     if string.len(Controls['Details'][i].String) > 0 then
 			Controls['Details'][i].String = helper.GetValueStringFromTable(device, Controls['Details'][i].String)
 		else
@@ -239,9 +257,11 @@
 			status_ = GetPowerAndChannel(device)
 			if DebugFunction then print('channel: '..status_.channel..', is_tv_playlist: '..tostring(status_.is_tv_playlist)..', power: '..tostring(status_.power)..', playlist: '..tostring(status_.playlist)..', signage: '..tostring(status_.signage)) end
 			Controls['PlaylistSelect'][i].String = status_.playlist
-			Controls['PowerOn'][i].Boolean = status_.power
-			Controls['PowerOff'][i].Boolean = not status_.power
-			
+			if display_==nil then
+        Controls['PowerOn'][i].Boolean = status_.power
+			  Controls['PowerOff'][i].Boolean = not status_.power
+      end
+
 			if status_.power then -- power on
         if status_.playlist and #status_.playlist>0 then
           if DebugFunction then print('is playlist: '..#status_.playlist) end
@@ -306,8 +326,10 @@
     	if DebugFunction then print("UpdateDevice - Type("..type(device.content)..") doesn't contain any channel or playlist data") end
       Controls['Logo'][i].Style = ""
       --Controls['Logo'][i].Color = "#708090" -- slate grey
-			Controls['PowerOn'][i].Boolean = false
-			Controls['PowerOff'][i].Boolean = false 
+			if display_==nil then
+      	Controls['PowerOn'][i].Boolean = false
+			  Controls['PowerOff'][i].Boolean = false 
+      end
       Controls['CurrentContent'][i].String = ""
 		end
 
@@ -432,6 +454,23 @@
     end
   end
   
+  function UpdateDisplayPowerStatus(i)
+    if displays~=nil and displays[i]~=nil then
+      local power_ = false
+      if displays[i]['PowerStatus']~=nil and displays[i]['PanelStatus']~=nil then
+        power_ = displays[i]['PowerStatus'].Boolean and displays[i]['PanelStatus'].Boolean
+      elseif displays[i]['PowerStatus']~=nil then
+        power_ = displays[i]['PowerStatus'].Boolean
+      elseif displays[i]['PanelStatus']~=nil then
+        power_ = displays[i]['PanelStatus'].Boolean
+      end
+
+      Controls['PowerToggle'][i].Boolean = power_
+      Controls['PowerOn'][i].Boolean = power_
+      Controls['PowerOff'][i].Boolean = not power_
+    end
+  end
+
   function load_event_handlers()
     for i=1, Properties['Display Count'].Value do
 
@@ -449,8 +488,12 @@
           local kvp_  = { ['name'] = ctl.String }
           local j, channel_ = helper.GetArrayItemWithKey(channels, kvp_)
           if channel_~=nil then
-            PostRequest(Path.."/devices/"..device_['mac'].."/commands/channel", '{"uri":"'..channel_['uri']..'"}')
             Controls['CurrentContent'][i].String = ctl.String
+            Controls['Logo'][i].Style = ""
+            if Controls['PowerOn'][i].Boolean then
+              get_tv_channel_image(channel_, Controls['Logo'][i])
+            end
+            PostRequest(Path.."/devices/"..device_['mac'].."/commands/channel", '{"uri":"'..channel_['uri']..'"}')
           end
         end
       end
@@ -463,6 +506,7 @@
           local kvp_  = { ['name'] = ctl.String }
           local j, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
           if playlist_~=nil and playlist_['id']~=nil then
+            Controls['Logo'][i].Style = ""
             PostRequest(Path.."/devices/"..device_['mac'].."/playlists/"..playlist_['id'], '')
           end
         end
@@ -501,9 +545,13 @@
         if displays[i]['PanelStatus']~=nil then
           displays[i]['PanelStatus'].EventHandler = function(ctl) 
             print('Display PanelOnStatus ['..i..']: '..tostring(ctl.Boolean))
-            Controls['PowerToggle'][i].Boolean = ctl.Boolean
-            Controls['PowerOn'][i].Boolean = ctl.Boolean
-            Controls['PowerOff'][i].Boolean = not ctl.Boolean
+            UpdateDisplayPowerStatus(i)
+          end
+        end
+        if displays[i]['PowerStatus']~=nil then
+          displays[i]['PowerStatus'].EventHandler = function(ctl) 
+            print('Display PowerStatus ['..i..']: '..tostring(ctl.Boolean))
+            UpdateDisplayPowerStatus(i)
           end
         end
         if displays[i]['Status']~=nil then
@@ -511,11 +559,6 @@
             print('Display ConnectionStatus ['..i..']: '..ctl.String)
             Controls['DisplayStatus'][i].Value = ctl.Value
             Controls['DisplayStatus'][i].String = ctl.String
-          end
-        end
-        if displays[i]['PowerStatus']~=nil then
-          displays[i]['PowerStatus'].EventHandler = function(ctl) 
-            print('Display PowerStatus ['..i..']: '..tostring(ctl.Boolean))
           end
         end
       end
@@ -648,17 +691,19 @@
           local image_ = rapidjson.encode({IconData = Crypto.Base64Encode(data)})
           if control then control.Style = image_ end
           if DebugFunction then print('encoded image for '..key..', '..filename_) end
-          logo_tbl[key]["file"] = filename_
-          write_config(config_filepath, logo_tbl)
-          save_logo_to_file(filename_, data)
+          if filename_ ~= Controls.IPAddress.String then -- sometimes the regez screws up and returns the IPAddress instead of the filename
+            logo_tbl[key]["file"] = filename_
+            write_config(config_filepath, logo_tbl)
+            save_logo_to_file(filename_, data)
+          end
         end
       end
     })
   end
  
   function get_tv_channel_image(name, control)
-    local name_ = string.gsub(name, "^%s*(.-)%s*$", "%1")
-    if DebugFunction then print("get_tv_channel_image: '"..name_.."'") end
+    local name_ = string.gsub(name, "^%s*(.-)%s*$", "%1") -- 
+    if DebugFunction then print("get_tv_channel_image: '"..name_.."'") end --"get_tv_channel_image: 'ABC NEWS'"
     --print("Nightlife url: "..tv_channel_logos.Nightlife.url)
     if tv_channel_logos['FoxSports503HD'] then
       --print("FoxSports503HD url: "..tv_channel_logos.FoxSports503HD.url)
