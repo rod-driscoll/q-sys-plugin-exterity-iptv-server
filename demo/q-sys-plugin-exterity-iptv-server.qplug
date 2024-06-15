@@ -615,26 +615,28 @@ if Controls then
       return return_
     end
   
-  	function SetDevicePower(display, device, command) -- command == 'Power_on', 
-  		if DebugFunction then print(command..' selected for', device.name, 'type:'..device['type'], 'platform:'..device['platform_name']) end
-      print('display type('..type(display)..')')
+  	function SetDevicePower(i, device, command) -- command == 'Power_on', 
+      local display_ = displays[i]
+      if DebugFunction then print(command..' selected for', device.name, 'type:'..device['type'], 'platform:'..device['platform_name']) end
+      print('display type('..type(display_)..')')
       --if string.len(device['platform_name']) > 0 then -- it is a decoder so blank it
       local command_=nil
       local command2_=nil
-      if display then -- a display module with the command is connected to the display so use it for power
+      if display_ then -- a display module with the command is connected to the display so use it for power
         if command=='Display_off' then 
-          if display['PanelOff']~=nil then 
+          Controls['Logo'][i].Style = ""
+          if display_['PanelOff']~=nil then 
             command_ = 'PanelOff'
-          elseif display['PowerOff']~=nil then 
+          elseif display_['PowerOff']~=nil then 
             command_ = 'PowerOff'
           end
         elseif command=='Display_on' then 
-          if display['PanelOn']~=nil then 
+          if display_['PanelOn']~=nil then 
             command_ = 'PanelOn'
-            if display['PowerStatus']~=nil and not display['PowerStatus'].Boolean then 
+            if display_['PowerStatus']~=nil and not display_['PowerStatus'].Boolean then 
               command2_ = 'PowerOn'
             end
-          elseif display['PowerOn']~=nil then 
+          elseif display_['PowerOn']~=nil then 
             command_ = 'PowerOn'
           end
         end
@@ -642,10 +644,10 @@ if Controls then
       if command_ then
         if command2_ then
           print('sending '..command2_..' to display component, type:', device['type'])
-          SetDisplayCommand(display, command2_, true)
+          SetDisplayCommand(display_, command2_, true)
         end
         print('sending '..command_..' to display component, type:', device['type'])
-        SetDisplayCommand(display, command_, true)
+        SetDisplayCommand(display_, command_, true)
       else -- not a decoder, so tell the native device module to power it
         PostRequest(Path.."/devices/"..device['mac'].."/commands/"..command, '') -- this will reset the channel
         --actually don't power it becaue it comes up in the wrong mode
@@ -653,8 +655,7 @@ if Controls then
     end
   
   	function UpdateDisplayModule(i, device) -- device is a single device
-      local display_ = displays[i]
-      display_ = (device['platform_name'] == nil or (string.len(device['platform_name']) < 1)) and display_ -- if there is no platform name then there is no display
+      local display_ = (device['platform_name'] == nil or (string.len(device['platform_name']) < 1)) and displays[i] -- if there is no platform name then there is no display
       print('UpdateDisplayModule('..i..') component '..(display_==nil and 'is nil' or 'exists'))
       Controls['EnableDisplay'][i].Boolean = display_ ~= nil
   		--Controls['DisplayIPAddress'][i].String = display_ ~= nil and device['ip'] or ''
@@ -993,21 +994,21 @@ if Controls then
   
         if displays[i] then
   
-          --local decoder_types = { 'UHD Decoder', 'Receiver', 'Media Player' } -- 'sssfp5Lfd'
+          --local decoder "type" items = { 'UHD Decoder', 'Receiver', 'Media Player', 'sssfp5Lfd' }
           Controls['PowerOff'][i].EventHandler = function(ctl) -- power_off
             local _, device_ = GetDeviceData(i)
-            if device_~=nil then SetDevicePower(displays[i], device_, 'Display_off') end
+            if device_~=nil then SetDevicePower(i, device_, 'Display_off') end
           end   
           
           Controls['PowerOn'][i].EventHandler = function(ctl) -- power_on
             local _, device_ = GetDeviceData(i)
-            if device_~=nil then SetDevicePower(displays[i], device_, 'Display_on') end
+            if device_~=nil then SetDevicePower(i, device_, 'Display_on') end
           end
           
           Controls['PowerToggle'][i].EventHandler = function(ctl) -- power_on
             --status_ = GetPowerAndChannel(data)
             local _, device_ = GetDeviceData(i)
-            if device_~=nil then SetDevicePower(displays[i], device_,  ctl.Boolean and 'Display_on' or 'Display_off') end
+            if device_~=nil then SetDevicePower(i, device_,  ctl.Boolean and 'Display_on' or 'Display_off') end
           end  
   
           if displays[i]['IPAddress']~=nil then
@@ -1189,19 +1190,28 @@ if Controls then
   	  end
       if tv_channel_logos[name_] then 
         if DebugFunction then print('channel '..name_..' logo exists') end
+        local file_ = nil
         if tv_channel_logos[name_].file and tv_channel_logos[name_].file ~= '' then
           if DebugFunction then print('get_tv_channel_image: '..tv_channel_logos[name_].file) end
-          local f = io.open(logos_filepath..tv_channel_logos[name_].file, "rb")   
-          if f~=nil then -- file exists
-            local data_ = f:read("*a")
+          file_ = io.open(logos_filepath..tv_channel_logos[name_].file, "rb")   
+          if file_==nil then
+            print('logo file not found on device')           
+          else -- file exists
+            local data_ = file_:read("*a")
             if data_ and #data_ then
+              print('encoding logo file - len: '..#data_)
               control.Style = rapidjson.encode({IconData = Crypto.Base64Encode(data_)})
+              io.close(file_)
+            else 
+              print('logo file empty')
+              io.close(file_)
+              file_ = nil
             end
-            io.close(f)
           end
-        elseif tv_channel_logos[name_]["url"] then
+        end
+        if file_==nil and tv_channel_logos[name_].url then
           --print('url: '..get_tv_channel_image[name_]["url"]) 
-          tv_channel_logos[name_]["file"] = ''
+          tv_channel_logos[name_].file = ''
           get_tv_channel_logo(tv_channel_logos, name_, control)
         end
       end
