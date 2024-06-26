@@ -99,7 +99,38 @@ table.insert(ctrls, {
   UserPin      = true,
   Count        = 1
 })
-
+table.insert(ctrls, {
+  Name         = "LoadLogos",
+  ControlType  = "Button",
+  ButtonType   = "Trigger",
+  PinStyle     = "Input",
+  UserPin      = true,
+  Count        = 1
+})
+table.insert(ctrls, {
+  Name         = "QueryDevices",
+  ControlType  = "Button",
+  ButtonType   = "Trigger",
+  PinStyle     = "Input",
+  UserPin      = true,
+  Count        = 1
+})
+table.insert(ctrls, {
+  Name         = "QueryChannels",
+  ControlType  = "Button",
+  ButtonType   = "Trigger",
+  PinStyle     = "Input",
+  UserPin      = true,
+  Count        = 1
+})
+table.insert(ctrls, {
+  Name         = "QueryPlaylists",
+  ControlType  = "Button",
+  ButtonType   = "Trigger",
+  PinStyle     = "Input",
+  UserPin      = true,
+  Count        = 1
+})
   -- Individual Devices --
 table.insert(ctrls, {
   Name         = "DeviceSelect",

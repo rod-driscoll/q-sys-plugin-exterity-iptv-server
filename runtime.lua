@@ -144,7 +144,7 @@
 	function SetDevicePower(i, device, command) -- command == 'Power_on', 
     local display_ = displays[i]
     if DebugFunction then print(command..' selected for', device.name, 'type:'..device['type'], 'platform:'..device['platform_name']) end
-    print('display type('..type(display_)..')')
+    --print('display type('..type(display_)..')') -- serdata
     --if string.len(device['platform_name']) > 0 then -- it is a decoder so blank it
     local command_=nil
     local command2_=nil
@@ -167,21 +167,26 @@
         end
       end
     end
-    if command_ then
+    if command_ then                                  -- send power to the connected display module
       if command2_ then
         print('sending '..command2_..' to display component, type:', device['type'])
         SetDisplayCommand(display_, command2_, true)
       end
       print('sending '..command_..' to display component, type:', device['type'])
       SetDisplayCommand(display_, command_, true)
-    else -- not a decoder, so tell the native device module to power it
-      PostRequest(Path.."/devices/"..device['mac'].."/commands/"..command, '') -- this will reset the channel
+    end
+    if not display_ or device.type=='UHD Decoder' then -- send power to the decoder
+      command_ = command=='Display_off' and 'poweroff' or 'poweron'
+      PostRequest(Path.."/devices/"..device['mac'].."/commands/"..command_, '') -- this will reset the channel
       --actually don't power it becaue it comes up in the wrong mode
     end
   end
 
 	function UpdateDisplayModule(i, device) -- device is a single device
-    local display_ = (device['platform_name'] == nil or (string.len(device['platform_name']) < 1)) and displays[i] -- if there is no platform name then there is no display
+    local display_ = nil
+    if device~=nil then
+      display_ = (device['platform_name'] == nil or (string.len(device['platform_name']) < 1)) and displays[i] -- if there is no platform name then there is no display
+    end
     print('UpdateDisplayModule('..i..') component '..(display_==nil and 'is nil' or 'exists'))
     Controls['EnableDisplay'][i].Boolean = display_ ~= nil
 		--Controls['DisplayIPAddress'][i].String = display_ ~= nil and device['ip'] or ''
@@ -233,123 +238,145 @@
   end 
 
 	function UpdateDevice(i, device) -- device is a single device
-		if DebugFunction then print('UpdateDevice('..i..'): '..device['name']) end
-		Controls['Address'][i].String = device['ip']
-		Controls['MACAddress'][i].String = device['mac']        
-		Controls['Online'][i].Boolean = (device['status'] == 'online')
-		Controls['Details'][i].Choices = helper.UpdateItems(device)
-		Controls['DeviceSelect'][i].String = device['name']
-		Controls['DeviceName'][i].String = device['name']
-		Controls['HasDecoder'][i].Boolean = (string.len(device['platform_name']) > 0)
-    local display_ = UpdateDisplayModule(i, device)
-    if string.len(Controls['Details'][i].String) > 0 then
-			Controls['Details'][i].String = helper.GetValueStringFromTable(device, Controls['Details'][i].String)
-		else
-			Controls['Details'][i].String = helper.GetValueStringFromTable(device, "mac: ")
-		end
-		if string.len(device['platform_name']) > 0 then
-			Controls['Platform'][i].String = device['platform_name']
-		end
-	
-		--CheckContent(device)
-		--print('trying to update channel from device')
-		local status_ = {}
-		if type(device.content) == "table" then
-			status_ = GetPowerAndChannel(device)
-			if DebugFunction then print('channel: '..status_.channel..', is_tv_playlist: '..tostring(status_.is_tv_playlist)..', power: '..tostring(status_.power)..', playlist: '..tostring(status_.playlist)..', signage: '..tostring(status_.signage)) end
-			Controls['PlaylistSelect'][i].String = status_.playlist
-			if display_==nil then
-        Controls['PowerOn'][i].Boolean = status_.power
-			  Controls['PowerOff'][i].Boolean = not status_.power
+    if device==nil then
+      if DebugFunction then print('UpdateDevice('..i..'): nil') end
+        Controls['Address'][i].String = ''
+        Controls['MACAddress'][i].String = ''       
+        Controls['Online'][i].Boolean = false
+        Controls['Details'][i].Choices = {}
+        Controls['DeviceSelect'][i].String = ''
+        Controls['DeviceName'][i].String = ''
+        Controls['Platform'][i].String = ''
+        Controls['HasDecoder'][i].Boolean = false
+        Controls['PlaylistSelect'][i].String = ''
+        --Controls['PlaylistSelect'][i].Choices = {}
+        Controls['ChannelSelect'][i].String = ''
+        --Controls['ChannelSelect'][i].Choices = {}
+        Controls['CurrentContent'][i].String = ''
+        Controls['Logo'][i].Style = ""
+        Controls['PowerOn'][i].Boolean = false
+        Controls['PowerOff'][i].Boolean = false
+        Controls['PowerToggle'][i].Boolean = false
+        UpdateDisplayModule(i, device)
+    else
+      if DebugFunction then print('UpdateDevice('..i..'): '..device['name']) end
+      Controls['Address'][i].String = device['ip']
+      Controls['MACAddress'][i].String = device['mac']        
+      Controls['Online'][i].Boolean = (device['status'] == 'online')
+      Controls['Details'][i].Choices = helper.UpdateItems(device)
+      Controls['DeviceSelect'][i].String = device['name']
+      Controls['DeviceName'][i].String = device['name']
+      Controls['HasDecoder'][i].Boolean = (string.len(device['platform_name']) > 0)
+      local display_ = UpdateDisplayModule(i, device)
+      if string.len(Controls['Details'][i].String) > 0 then
+        Controls['Details'][i].String = helper.GetValueStringFromTable(device, Controls['Details'][i].String)
+      else
+        Controls['Details'][i].String = helper.GetValueStringFromTable(device, "mac: ")
       end
-
-			if status_.power then -- power on
-        if status_.playlist and #status_.playlist>0 then
-          if DebugFunction then print('is playlist: '..#status_.playlist) end
-          local kvp_  = { ['name'] = status_.playlist }
-          local p, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
-          if p then Controls['Logo'][i].Style = playlist_images[p] end
-          Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
-        else
-          if DebugFunction then print('not playlist: '..status_.playlist) end
-          Controls['Logo'][i].Style = ""
-          --Controls['Logo'][i].Color = "#808080" -- grey
+      if string.len(device['platform_name']) > 0 then
+        Controls['Platform'][i].String = device['platform_name']
+      end
+    
+      --CheckContent(device)
+      --print('trying to update channel from device')
+      local status_ = {}
+      if type(device.content) == "table" then
+        status_ = GetPowerAndChannel(device)
+        if DebugFunction then print('channel: '..status_.channel..', is_tv_playlist: '..tostring(status_.is_tv_playlist)..', power: '..tostring(status_.power)..', playlist: '..tostring(status_.playlist)..', signage: '..tostring(status_.signage)) end
+        Controls['PlaylistSelect'][i].String = status_.playlist
+        if display_==nil then
+          Controls['PowerOn'][i].Boolean = status_.power
+          Controls['PowerOff'][i].Boolean = not status_.power
         end
-				if string.len(status_.channel) > 0 and not status_.jobs_pending then -- channel exists, set feedback
-          if DebugFunction then print('channel not empty, power is on, no jobs pending') end
-          Controls['ChannelSelect'][i].String = status_.channel 
-          Controls['CurrentContent'][i].String = status_.channel
-					Controls['PowerOnChannel'][i].String = status_.channel
-          --tv_channel_logos
-          get_tv_channel_image(status_.channel, Controls['Logo'][i])
-          Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
-				else -- need to force it to a channel
-					if status_.is_tv_playlist and Controls['ChannelSelect'][i] and string.len(Controls['ChannelSelect'][i].String) > 0 then --it's on a blank channel, have to clear selector before forcing it
-						if string.len(Controls['PowerOnChannel'][i].String) < 1 then -- the power on channel is blank
-							Controls['PowerOnChannel'][i].String = Controls['ChannelSelect'][i].String -- give it a channel to return to in a moment
-						end
-						if device.status == 'online' then
-							if DebugFunction then 
-                print("setting power on channel - because the system doesn't recall the previous channel on power up")
-                print("playlist: "..status_.playlist)
-              end
-							Controls['ChannelSelect'][i].String = "" -- clear the string so we can force an event when we set it again
-							Controls['ChannelSelect'][i].String = Controls['PowerOnChannel'][i].String -- force the Event
-							Controls['CurrentContent'][i].String = Controls['PowerOnChannel'][i].String
-						end
-					elseif not status_.is_tv_playlist then
-						if DebugFunction then print('not in TV channel playlist: '..status_.playlist..', clearing the current and startup channels') end
-            Controls['ChannelSelect'][i].String = "" -- clear the strings
-            --Controls['ChannelSelect'][i].String = status_.playlist -- try inserting the playlist name
-            Controls['PowerOnChannel'][i].String = ""
-            Controls['CurrentContent'][i].String = status_.playlist
-            --[[
+
+        if status_.power then -- power on
+          if status_.playlist and #status_.playlist>0 then
+            if DebugFunction then print('is playlist: '..#status_.playlist) end
             local kvp_  = { ['name'] = status_.playlist }
             local p, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
-            Controls['Logo'][i].Style = playlist_images[p]
-            --Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
-            ]]--
-					end
-				end
-			else -- power off
-				if string.len(Controls['ChannelSelect'][i].String) > 0 then
-					Controls['ChannelSelect'][i].String = status_.channel -- clear the string so we can force an event when we set it again
-					Controls['CurrentContent'][i].String = status_.channel
-          Controls['Logo'][i].Style = ""
-          --Controls['Logo'][i].Color = "#000000" -- black
-				end 
-			end
-			if string.len(status_.channel) > 0 and not status_.jobs_pending then
-				if DebugFunction then print('channel not empty') end
-				Controls['PowerOnChannel'][i].String = status_.channel
-			end
-    else 
-    	if DebugFunction then print("UpdateDevice - Type("..type(device.content)..") doesn't contain any channel or playlist data") end
-      Controls['Logo'][i].Style = ""
-      --Controls['Logo'][i].Color = "#708090" -- slate grey
-			if display_==nil then
-      	Controls['PowerOn'][i].Boolean = false
-			  Controls['PowerOff'][i].Boolean = false 
+            if p then Controls['Logo'][i].Style = playlist_images[p] end
+            Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
+          else
+            if DebugFunction then print('not playlist: '..status_.playlist) end
+            Controls['Logo'][i].Style = ""
+            --Controls['Logo'][i].Color = "#808080" -- grey
+          end
+          if string.len(status_.channel) > 0 and not status_.jobs_pending then -- channel exists, set feedback
+            if DebugFunction then print('channel not empty, power is on, no jobs pending') end
+            Controls['ChannelSelect'][i].String = status_.channel 
+            Controls['CurrentContent'][i].String = status_.channel
+            Controls['PowerOnChannel'][i].String = status_.channel
+            --tv_channel_logos
+            get_tv_channel_image(status_.channel, Controls['Logo'][i])
+            Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
+          else -- need to force it to a channel
+            if status_.is_tv_playlist and Controls['ChannelSelect'][i] and string.len(Controls['ChannelSelect'][i].String) > 0 then --it's on a blank channel, have to clear selector before forcing it
+              if string.len(Controls['PowerOnChannel'][i].String) < 1 then -- the power on channel is blank
+                Controls['PowerOnChannel'][i].String = Controls['ChannelSelect'][i].String -- give it a channel to return to in a moment
+              end
+              if device.status == 'online' then
+                if DebugFunction then 
+                  print("setting power on channel - because the system doesn't recall the previous channel on power up")
+                  print("playlist: "..status_.playlist)
+                end
+                Controls['ChannelSelect'][i].String = "" -- clear the string so we can force an event when we set it again
+                Controls['ChannelSelect'][i].String = Controls['PowerOnChannel'][i].String -- force the Event
+                Controls['CurrentContent'][i].String = Controls['PowerOnChannel'][i].String
+              end
+            elseif not status_.is_tv_playlist then
+              if DebugFunction then print('not in TV channel playlist: '..status_.playlist..', clearing the current and startup channels') end
+              Controls['ChannelSelect'][i].String = "" -- clear the strings
+              --Controls['ChannelSelect'][i].String = status_.playlist -- try inserting the playlist name
+              Controls['PowerOnChannel'][i].String = ""
+              Controls['CurrentContent'][i].String = status_.playlist
+              --[[
+              local kvp_  = { ['name'] = status_.playlist }
+              local p, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
+              Controls['Logo'][i].Style = playlist_images[p]
+              --Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
+              ]]--
+            end
+          end
+        else -- power off
+          if string.len(Controls['ChannelSelect'][i].String) > 0 then
+            Controls['ChannelSelect'][i].String = status_.channel -- clear the string so we can force an event when we set it again
+            Controls['CurrentContent'][i].String = status_.channel
+            Controls['Logo'][i].Style = ""
+            --Controls['Logo'][i].Color = "#000000" -- black
+          end 
+        end
+        if string.len(status_.channel) > 0 and not status_.jobs_pending then
+          if DebugFunction then print('channel not empty') end
+          Controls['PowerOnChannel'][i].String = status_.channel
+        end
+      else 
+        if DebugFunction then print("UpdateDevice - Type("..type(device.content)..") doesn't contain any channel or playlist data") end
+        Controls['Logo'][i].Style = ""
+        --Controls['Logo'][i].Color = "#708090" -- slate grey
+        if display_==nil then
+          Controls['PowerOn'][i].Boolean = false
+          Controls['PowerOff'][i].Boolean = false 
+        end
+        Controls['CurrentContent'][i].String = ""
       end
-      Controls['CurrentContent'][i].String = ""
-		end
 
-	end
-	
-	function SetDisplayCommand(display, command, value) -- (table, 'Power_On', true) -- data is a single device
-		if DebugFunction then print('SetDisplayCommand('..command..','..tostring(value)..')') end
-		if display[command] then -- if component control exists
-      if type(value) == 'boolean' then
-        display[command].Boolean = value
-      elseif  type(value) == 'string' then
-        display[command].String = value
-      elseif  type(value) == 'table' then
-        display[command].Choices = value
-      else
-        display[command].Value = value
+    end
+    
+    function SetDisplayCommand(display, command, value) -- (table, 'Power_On', true) -- data is a single device
+      if DebugFunction then print('SetDisplayCommand('..command..','..tostring(value)..')') end
+      if display[command] then -- if component control exists
+        if type(value) == 'boolean' then
+          display[command].Boolean = value
+        elseif  type(value) == 'string' then
+          display[command].String = value
+        elseif  type(value) == 'table' then
+          display[command].Choices = value
+        else
+          display[command].Value = value
+        end
       end
     end
-	end
+  end
 
 	function AssignDevice(i, device) -- device is a single device
     if DebugFunction then 
@@ -360,8 +387,11 @@
       Controls['DeviceSelect'][i].String = device['name'] -- assign it to a device
 			Controls['DeviceName'][i].String = device['name']
 		  --print('assigned ['..i..'] name:', device[i]['name'], 'to device', Controls['DeviceSelect'][i].String..i)
-      UpdateDevice(i, device)
+    else
+      Controls['DeviceSelect'][i].String = ''
+			Controls['DeviceName'][i].String = ''
     end
+    UpdateDevice(i, device)     
   end
 	
 	function CheckContent(device) -- device is a single device
@@ -449,6 +479,7 @@
         elseif Controls['DeviceSelect'][i].String==b['name'] then break end -- assigned so stop looking
       end
     end
+    table.insert(names_, '') -- add a blank name to the end so you can clear a device
     Controls.DeviceNames.Choices = names_
     for i=1, #Controls['DeviceSelect'] do
 		  Controls['DeviceSelect'][i].Choices = Controls.DeviceNames.Choices -- update the device selector choices
@@ -513,30 +544,29 @@
         end
       end
 
+      --local decoder "type" items = { 'UHD Decoder', 'Receiver', 'Media Player', 'sssfp5Lfd' }
+      Controls['PowerOff'][i].EventHandler = function(ctl) -- power_off
+        local _, device_ = GetDeviceData(i)
+        if device_~=nil then SetDevicePower(i, device_, 'Display_off') end
+      end   
+      
+      Controls['PowerOn'][i].EventHandler = function(ctl) -- power_on
+        local _, device_ = GetDeviceData(i)
+        if device_~=nil then SetDevicePower(i, device_, 'Display_on') end
+      end
+      
+      Controls['PowerToggle'][i].EventHandler = function(ctl) -- power_on
+        --status_ = GetPowerAndChannel(data)
+        local _, device_ = GetDeviceData(i)
+        if device_~=nil then SetDevicePower(i, device_,  ctl.Boolean and 'Display_on' or 'Display_off') end
+      end  
+
       displays[i] = Component.New(Properties['Display Code Name Prefix'].Value..i) -- eg "Display_1"
       if displays[i] then
         displays[i] = (#Component.GetControls(displays[i]))>0 and displays[i] or nil -- make it nil if it doesn't have any controls
       end
 
       if displays[i] then
-
-        --local decoder "type" items = { 'UHD Decoder', 'Receiver', 'Media Player', 'sssfp5Lfd' }
-        Controls['PowerOff'][i].EventHandler = function(ctl) -- power_off
-          local _, device_ = GetDeviceData(i)
-          if device_~=nil then SetDevicePower(i, device_, 'Display_off') end
-        end   
-        
-        Controls['PowerOn'][i].EventHandler = function(ctl) -- power_on
-          local _, device_ = GetDeviceData(i)
-          if device_~=nil then SetDevicePower(i, device_, 'Display_on') end
-        end
-        
-        Controls['PowerToggle'][i].EventHandler = function(ctl) -- power_on
-          --status_ = GetPowerAndChannel(data)
-          local _, device_ = GetDeviceData(i)
-          if device_~=nil then SetDevicePower(i, device_,  ctl.Boolean and 'Display_on' or 'Display_off') end
-        end  
-
         if displays[i]['IPAddress']~=nil then
           displays[i]['IPAddress'].EventHandler = function(ctl) 
             print('Display IPAddress ['..i..']: '..tostring(ctl.String))
@@ -897,16 +927,31 @@
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Parse initial response
 	-----------------------------------------------------------------------------------------------------------------------
-	function QueryAll()
-		if DebugFunction then print('Query all (total: '..#devices..', defined: '..#Controls['DeviceSelect']..')') end
+	function QueryDevices()
+    if DebugFunction then print('QueryDevices (total: '..#devices..', defined: '..#Controls['DeviceSelect']..')') end
     GetRequest(Path.."/devices")	
     if #devices>0  then
       for i=1, #devices do
         GetRequest(Path.."/devices/"..devices[i]['mac'])
       end
     end
-    Timer.CallAfter(function() GetRequest(Path.."/channels") end, 1) --wait 1 sec to avoid maximum execution
-		Timer.CallAfter(function() GetRequest(Path.."/playlists") end, 2) --wait 1 sec to avoid maximum execution 
+  end
+
+  function QueryChannels()
+    if DebugFunction then print('QueryChannels') end
+    GetRequest(Path.."/channels")
+  end
+
+  function QueryPlaylists()
+    if DebugFunction then print('QueryPlaylists') end
+    GetRequest(Path.."/playlists")
+  end
+
+  function QueryAll()
+		if DebugFunction then print('Query all') end
+    QueryDevices()
+    Timer.CallAfter(QueryChannels, 1) --wait 1 sec to avoid maximum execution
+		Timer.CallAfter(QueryPlaylists, 2) --wait 1 sec to avoid maximum execution 
 	end
 
   function ParseImage(img, idx)
@@ -933,23 +978,28 @@
 
 	function ParseResponse(json)
 	-- responses from the HTTP server, determine how to parse them here
-		local data_ = rapidjson.decode(json)
-		if DebugFunction then print('ParseResponse', #json..' bytes') end
-		if data_==nil then -- response is a string
-			ParseImage(json)
-		elseif data_[1]~=nil then -- response is an array
-			if data_[1]['mac']~=nil then              -- devices
-				ParseDevices(data_)
-			elseif data_[1]['channelid']~=nil then    -- channels
-				ParseChannels(data_)
-			elseif data_[1]['orientation']~=nil then  -- playlists
-				ParsePlaylists(data_)
-			end
-		elseif data_['mac']~=nil then -- response is a table
-			ParseDevice(data_)
-		end
-		data_ = nil
-	end
+    if json=='null' then
+      if DebugFunction then print('ParseResponse: ', json) end
+    else
+    	local data_ = rapidjson.decode(json)
+      if DebugFunction then print('ParseResponse', #json..' bytes') end
+      if data_==nil then -- response is a string
+        ParseImage(json)
+      elseif data_[1]~=nil then -- response is an array
+        if data_[1]['mac']~=nil then              -- devices
+          ParseDevices(data_)
+        elseif data_[1]['channelid']~=nil then    -- channels
+          ParseChannels(data_)
+        elseif data_[1]['orientation']~=nil then  -- playlists
+          ParsePlaylists(data_)
+        end
+      elseif data_['mac']~=nil then -- response is a table
+        ParseDevice(data_)
+      end
+      data_ = nil
+    end
+  end
+
 	-----------------------------------------------------------------------------------------------------------------------
 	-- HTTP comms functions
 	-------------------------------------------------------------------------------------------------------------------------
@@ -1081,9 +1131,7 @@
 	-----------------------------------------------------------------------------------------------------------------------
 	-- EventHandlers
 	-----------------------------------------------------------------------------------------------------------------------
-  Controls.IPAddress.EventHandler = function()
-    initialize()
-  end
+  Controls.IPAddress.EventHandler = initialize
 
   Controls.DeviceNames.EventHandler = function(ctl)
     if DebugFunction then print('device choice', ctl.String, ', num devices:', #devices) end
@@ -1116,6 +1164,12 @@
       UpdateChannelControlDetails(channel_)-- update 'Channel_details'
     end
   end
+
+  Controls.QueryDevices.EventHandler = QueryDevices
+  Controls.QueryChannels.EventHandler = QueryChannels
+  Controls.QueryPlaylists.EventHandler = QueryPlaylists
+  Controls.LoadLogos.EventHandler = load_tv_channel_images
+
 	-----------------------------------------------------------------------------------------------------------------------
 	-- End of module
 	-----------------------------------------------------------------------------------------------------------------------

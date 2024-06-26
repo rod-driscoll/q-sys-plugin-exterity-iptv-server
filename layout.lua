@@ -41,6 +41,14 @@ if(CurrentPage == 'Setup') then
 
 elseif(CurrentPage == 'System') then 
   layout["PlaylistLogo"] = {PrettyName="Settings~PlaylistLogo"      ,Position={460,  9},Size={180,180},Style="Button",Color=colors.Transparent}
+  table.insert(graphics,{Type="Text",Text="Query devices"           ,Position={460,200},Size={135, 16},FontSize=14,HTextAlign="Left"})
+  layout["QueryDevices"] = {PrettyName="Settings~QueryDevices"      ,Position={604,200},Size={ 36, 16},FontSize=12,Style="Button"}
+  table.insert(graphics,{Type="Text",Text="Query channels"          ,Position={460,216},Size={135, 16},FontSize=14,HTextAlign="Left"})
+  layout["QueryChannels"] = {PrettyName="Settings~QueryChannels"    ,Position={604,216},Size={ 36, 16},FontSize=12,Style="Button"}
+  table.insert(graphics,{Type="Text",Text="Query playlists"         ,Position={460,232},Size={135, 16},FontSize=14,HTextAlign="Left"})
+  layout["QueryPlaylists"] = {PrettyName="Settings~QueryPlaylists"  ,Position={604,232},Size={ 36, 16},FontSize=12,Style="Button"}
+  table.insert(graphics,{Type="Text",Text="Reload logo config"      ,Position={460,248},Size={135, 16},FontSize=14,HTextAlign="Left"})
+  layout["LoadLogos"] = {PrettyName="Settings~LogoLoad"             ,Position={604,248},Size={ 36, 16},FontSize=12,Style="Button"}
 
   table.insert(graphics,{Type="Text",Text="Device names"            ,Position={ 10,  5},Size={140, 16},FontSize=14,HTextAlign="Center"})
   layout["DeviceNames"] = {PrettyName="Settings~DeviceNames"        ,Position={ 10, 21},Size={140, 16},FontSize=12,Style="ComboBox"}
