@@ -93,6 +93,14 @@ table.insert(ctrls, {
 })
 table.insert(ctrls, {
   Name         = "PlaylistLogo",
+  ControlType  = "Indicator",
+  IndicatorType= "Led",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = 1
+})
+table.insert(ctrls, {
+  Name         = "PlaylistLogoTest",
   ControlType  = "Button",
   ButtonType   = "Trigger",
   PinStyle     = "Output",
@@ -271,6 +279,14 @@ table.insert(ctrls, {
 })
 table.insert(ctrls, {
   Name         = "Logo",
+  ControlType  = "Indicator",
+  IndicatorType= "Led",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "LogoTest",
   ControlType  = "Button",
   ButtonType   = "Trigger",
   PinStyle     = "Output",

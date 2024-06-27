@@ -14,9 +14,10 @@
   -- update: add a blank name to the end of the device list so you can clear a device
   -- update: added LoadLogos button to settings, pressing that will re-load the channels-config.json file
   -- update: added QueryDevices, QueryChannels and QueryPlaylists buttons to settings. These are polled on a timer via PollInterval but you may want to update them manually
+  -- update: logos changed to indicators instead of buttons so they can be overlayed on combo boxes for channel select
+    -- known issue: the logos clear and refresh on each poll cycle, TODO keep track of last icon and don't update on poll if not required.
 
-  -- known issue: if device name is changed in Vitec server then the device needs to be re-selected in the device select drop down.
-  -- known issue: you can't select no device, so copying from an existing installation won't clear devices.
+-- known issue: if device name is changed in Vitec server then the device needs to be re-selected in the device select drop down.
 
 
 PluginInfo = {

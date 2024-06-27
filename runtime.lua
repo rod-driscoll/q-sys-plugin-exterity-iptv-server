@@ -14,6 +14,7 @@
 
 	-- Timers, tables, and constants
 	QueryTimer = Timer.New()
+	LogoTimer = Timer.New()
 	--Timeout = Properties["Poll Interval"].Value + 10
 	
 	-- Device specific
@@ -150,7 +151,9 @@
     local command2_=nil
     if display_ then -- a display module with the command is connected to the display so use it for power
       if command=='Display_off' then 
-        Controls['Logo'][i].Style = ""
+        UpdateLogo(Controls['Logo'][i], '') 
+        UpdateLogo(Controls['LogoTest'][i], '')      
+        if DebugFunction then print('SetDevicePower: cleared image for '..i) end
         if display_['PanelOff']~=nil then 
           command_ = 'PanelOff'
         elseif display_['PowerOff']~=nil then 
@@ -253,10 +256,11 @@
         Controls['ChannelSelect'][i].String = ''
         --Controls['ChannelSelect'][i].Choices = {}
         Controls['CurrentContent'][i].String = ''
-        Controls['Logo'][i].Style = ""
         Controls['PowerOn'][i].Boolean = false
         Controls['PowerOff'][i].Boolean = false
         Controls['PowerToggle'][i].Boolean = false
+        UpdateLogo(Controls['Logo'][i], '')
+        UpdateLogo(Controls['LogoTest'][i], '')
         UpdateDisplayModule(i, device)
     else
       if DebugFunction then print('UpdateDevice('..i..'): '..device['name']) end
@@ -294,12 +298,17 @@
             if DebugFunction then print('is playlist: '..#status_.playlist) end
             local kvp_  = { ['name'] = status_.playlist }
             local p, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
-            if p then Controls['Logo'][i].Style = playlist_images[p] end
-            Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
+            if p then 
+              UpdateLogo(Controls['Logo'][i], playlist_images[p]) 
+              UpdateLogo(Controls['LogoTest'][i], playlist_images[p])     
+              if DebugFunction then print('UpdateDevice: encoded image for '..i) end
+
+            end
           else
             if DebugFunction then print('not playlist: '..status_.playlist) end
-            Controls['Logo'][i].Style = ""
-            --Controls['Logo'][i].Color = "#808080" -- grey
+            UpdateLogo(Controls['Logo'][i], '')
+            UpdateLogo(Controls['LogoTest'][i], '')
+            if DebugFunction then print('UpdateDevice: cleared image for '..i) end
           end
           if string.len(status_.channel) > 0 and not status_.jobs_pending then -- channel exists, set feedback
             if DebugFunction then print('channel not empty, power is on, no jobs pending') end
@@ -341,8 +350,9 @@
           if string.len(Controls['ChannelSelect'][i].String) > 0 then
             Controls['ChannelSelect'][i].String = status_.channel -- clear the string so we can force an event when we set it again
             Controls['CurrentContent'][i].String = status_.channel
-            Controls['Logo'][i].Style = ""
-            --Controls['Logo'][i].Color = "#000000" -- black
+            UpdateLogo(Controls['Logo'][i], '')
+            UpdateLogo(Controls['LogoTest'][i], '')
+            if DebugFunction then print('Power off: cleared image for '..i) end
           end 
         end
         if string.len(status_.channel) > 0 and not status_.jobs_pending then
@@ -351,8 +361,9 @@
         end
       else 
         if DebugFunction then print("UpdateDevice - Type("..type(device.content)..") doesn't contain any channel or playlist data") end
-        Controls['Logo'][i].Style = ""
-        --Controls['Logo'][i].Color = "#708090" -- slate grey
+        UpdateLogo(Controls['Logo'][i], '')
+        UpdateLogo(Controls['LogoTest'][i], '')
+        if DebugFunction then print('no data: cleared image for '..i) end
         if display_==nil then
           Controls['PowerOn'][i].Boolean = false
           Controls['PowerOff'][i].Boolean = false 
@@ -503,6 +514,51 @@
     end
   end
 
+  local logoQueue = {}
+
+  function QueuLogoUpdate(control)
+    local item_ = {}
+    item_['control'] = control
+    item_['ttl'] = 5 -- time to live in passes
+    --iterate backwards so removing items doesn't screw the iteration
+     --clear existing instances in queue
+    for i = #logoQueue, 1, -1 do
+      if (logoQueue[i].control == control) then table.remove(logoQueue, i) end
+    end
+    --add item to queue
+    table.insert(logoQueue, item_)
+    print("QueuLogoUpdate adding #"..#logoQueue)
+    if not LogoTimer:IsRunning() then
+      LogoTimer.EventHandler = function(timer) -- EventHandler
+        for i = #logoQueue, 1, -1 do 
+          logoQueue[i].ttl = logoQueue[i].ttl-1
+          if logoQueue[i].ttl==0 then
+            logoQueue[i].control.Legend = ''
+            table.remove(logoQueue, i)
+            print("QueuLogoUpdate remove #"..#logoQueue)
+          end
+        end
+      end
+      LogoTimer:Start(0.1)
+    else
+      --print("Logo timer is already running")
+    end
+  end
+
+  function UpdateLogo(control, val)
+    if control then     
+      --if not helper.equals(Controls.PlaylistLogo.Style, img_, false) then
+      if val=='' then control.Legend = 'nil'
+      else control.Legend = val
+      end
+      QueuLogoUpdate(control)
+      --control.Style = val  -- Style worked on buttons but not on LEDs
+      --if val~='' then control.Color = "#00FFFFFF"  -- transparent
+      --else            control.Color = "#808080" -- grey
+      --end
+    end
+  end
+
   function load_event_handlers()
     for i=1, Properties['Display Count'].Value do
 
@@ -521,7 +577,9 @@
           local j, channel_ = helper.GetArrayItemWithKey(channels, kvp_)
           if channel_~=nil then
               Controls['CurrentContent'][i].String = ctl.String
-              Controls['Logo'][i].Style = ""
+              UpdateLogo(Controls['Logo'][i], '')
+              UpdateLogo(Controls['LogoTest'][i], '')
+              if DebugFunction then print('channel select: cleared image for '..i) end
               if Controls['PowerOn'][i].Boolean then
                 get_tv_channel_image(ctl.String, Controls['Logo'][i])
               end
@@ -538,7 +596,9 @@
           local kvp_  = { ['name'] = ctl.String }
           local j, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
           if playlist_~=nil and playlist_['id']~=nil then
-            Controls['Logo'][i].Style = ""
+            UpdateLogo(Controls['Logo'][i], '')
+            UpdateLogo(Controls['LogoTest'][i], '')
+            if DebugFunction then print('playlist select: cleared image for '..i) end
             PostRequest(Path.."/devices/"..device_['mac'].."/playlists/"..playlist_['id'], '')
           end
         end
@@ -720,9 +780,10 @@
           end
           local filename_ = get_filename_from_url(url)
           local image_ = rapidjson.encode({IconData = Crypto.Base64Encode(data)})
-          if control then control.Style = image_ end
-          if DebugFunction then print('encoded image for '..key..', '..filename_) end
-          if filename_ ~= Controls.IPAddress.String then -- sometimes the regez screws up and returns the IPAddress instead of the filename
+          UpdateLogo(control, image_)
+          if DebugFunction then print('1-get_tv_channel_logo: encoded image for '..key..', '..filename_..' - len: '..#data) end
+
+          if filename_ ~= Controls.IPAddress.String then -- sometimes the regex screws up and returns the IPAddress instead of the filename
             logo_tbl[key]["file"] = filename_
             write_config(config_filepath, logo_tbl)
             save_logo_to_file(filename_, data)
@@ -755,8 +816,8 @@
         else -- file exists
           local data_ = file_:read("*a")
           if data_ and #data_ then
-            print('encoding logo file - len: '..#data_)
-            control.Style = rapidjson.encode({IconData = Crypto.Base64Encode(data_)})
+            UpdateLogo(control, rapidjson.encode({IconData = Crypto.Base64Encode(data_)}))     
+            if DebugFunction then print('1-get_tv_channel_image: encoded image for '..name_..', '..tv_channel_logos[name_].file..' - len: '..#data_) end
             io.close(file_)
           else 
             print('logo file empty')
@@ -912,11 +973,9 @@
               end
               if Controls.PlaylistNames.String == playlists[i].name then
                 --if DebugFunction then print("playlists["..i.."].name: " .. playlists[i].name) end
-                --if DebugFunction then print("Controls.PlaylistNames.String: " .. Controls.PlaylistNames.String) end
-                if not helper.equals(Controls.PlaylistLogo.Style, img_, false) then
-                  Controls.PlaylistLogo.Style = img_
-                  Controls.PlaylistLogo.Color = "#00FFFFFF" -- transparent
-                end
+                UpdateLogo(Controls.PlaylistLogo, img_)
+                UpdateLogo(Controls.PlaylistLogoTest, img_)
+                if DebugFunction then print('UpdatePlaylistControlDetails: encoded image for '..playlists[i].name..' - len: '..#data_) end
               end
             end
           end
@@ -963,11 +1022,9 @@
           playlist_images[idx] = img_
         end
       else
-        print('ParseImage()')
-        if not helper.equals(Controls.PlaylistLogo.Style, img_, false) then
-          Controls.PlaylistLogo.Style = img_
-          Controls.PlaylistLogo.Color = "#00FFFFFF"
-        end
+        UpdateLogo(Controls.PlaylistLogo, img_)
+        UpdateLogo(Controls.PlaylistLogoTest, img_)
+        if DebugFunction then print('ParseImage: encoded image for '..idx..' - len: '..#img) end
       end
     end
   end
