@@ -15,7 +15,9 @@
   -- update: added LoadLogos button to settings, pressing that will re-load the channels-config.json file
   -- update: added QueryDevices, QueryChannels and QueryPlaylists buttons to settings. These are polled on a timer via PollInterval but you may want to update them manually
   -- update: logos changed to indicators instead of buttons so they can be overlayed on combo boxes for channel select
-    -- known issue: the logos clear and refresh on each poll cycle, TODO keep track of last icon and don't update on poll if not required.
+  -- update: resends a similar inmage after each image to deal with a QSD bug with LED images
+    -- TODO: keep track of last icon and don't update on poll if not required.
+    -- TODO: remove test logo code
 
 -- known issue: if device name is changed in Vitec server then the device needs to be re-selected in the device select drop down.
 
