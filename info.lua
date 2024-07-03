@@ -16,6 +16,7 @@
   -- update: added QueryDevices, QueryChannels and QueryPlaylists buttons to settings. These are polled on a timer via PollInterval but you may want to update them manually
   -- update: logos changed to indicators instead of buttons so they can be overlayed on combo boxes for channel select
   -- update: resends a similar inmage after each image to deal with a QSD bug with LED images
+  -- update: logos will look for a logo with similar name, searching case insensitive, removing whitespace, sub and super strings  
     -- TODO: keep track of last icon and don't update on poll if not required.
     -- TODO: remove test logo code
 

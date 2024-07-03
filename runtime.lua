@@ -806,8 +806,20 @@
     })
   end
  
-  function get_tv_channel_image(name, control)
-    local name_ = string.gsub(name, "^%s*(.-)%s*$", "%1") -- 
+  function GetTvChannelName(name) -- check for similar names
+    if tv_channel_logos[name] then return name end
+    local name_ = name:lower():gsub("%s+", "") -- lowercase and remove whitespace
+    if tv_channel_logos[name_] then return name end
+    for k,v in pairs(tv_channel_logos) do
+      local k_ = k:lower():gsub("%s+", "")
+      if name_ == k_ then return k end -- "NightLife" or "Nightlife"
+      if name_:match(k_) then return k end -- "ABC" <-> "ABC HD"
+      if k_:match(name_) then return k end -- "ABC HD" <-> "ABC"
+    end
+  end
+
+  function get_tv_channel_image(name, control) 
+    local name_ = string.gsub(name, "^%s*(.-)%s*$", "%1") -- trim whitespace from filename
     if DebugFunction then print("get_tv_channel_image: '"..name_.."'") end --"get_tv_channel_image: 'ABC NEWS'"
     --print("Nightlife url: "..tv_channel_logos.Nightlife.url)
     if tv_channel_logos['FoxSports503HD'] then
@@ -818,6 +830,7 @@
         if System.IsEmulating then load_tv_channel_images() end
       end
 	  end
+    name_ = GetTvChannelName(name_)
     if tv_channel_logos[name_] then 
       if DebugFunction then print('channel '..name_..' logo exists') end
       local file_ = nil
@@ -853,11 +866,16 @@
     if f~=nil then -- file exists
       io.close(f)
       local config = rapidjson.load(path)
-      if DebugFunction then
-        print("config loaded size: "..#config)
-        print("config type: "..type(config))
-      end --helper.TablePrint(config)
-      --print("nightlife url: "..config.Nightlife.url)
+      if config then
+        if DebugFunction then
+          local i = 0
+          for _ in pairs(config) do i=i+1 end 
+          print("config loaded size: "..i..", type: "..type(config))
+        end --helper.TablePrint(config)
+        --print("nightlife url: "..config.Nightlife.url)
+      else
+        print("config file not loaded: "..path)
+      end
       return config
     else 
       if DebugFunction then print('file not found') end

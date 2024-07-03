@@ -17,6 +17,7 @@
   -- update: added QueryDevices, QueryChannels and QueryPlaylists buttons to settings. These are polled on a timer via PollInterval but you may want to update them manually
   -- update: logos changed to indicators instead of buttons so they can be overlayed on combo boxes for channel select
   -- update: resends a similar inmage after each image to deal with a QSD bug with LED images
+  -- update: logos will look for a logo with similar name, searching case insensitive, removing whitespace, sub and super strings  
     -- TODO: keep track of last icon and don't update on poll if not required.
     -- TODO: remove test logo code
 
@@ -1031,7 +1032,9 @@ if Controls then
   
     local logoQueue = {}
   
-    function QueuLogoUpdate(data, control) -- need to wait and send another value because the logo item has a bug where it always disaplys the previous sent image
+    function QueuLogoUpdate(data, control) 
+      -- need to wait and send another value because the logo item has a bug where it always disaplys the previous sent image [QSD 9.10.2]
+      -- so we are modifying the image by one byte and re-sending that to use as a placeholder between images.
       local item_ = {}
       item_['control'] = control
       item_['ttl'] = 5 -- time to live in passes
@@ -1325,8 +1328,20 @@ if Controls then
       })
     end
    
-    function get_tv_channel_image(name, control)
-      local name_ = string.gsub(name, "^%s*(.-)%s*$", "%1") -- 
+    function GetTvChannelName(name) -- check for similar names
+      if tv_channel_logos[name] then return name end
+      local name_ = name:lower():gsub("%s+", "") -- lowercase and remove whitespace
+      if tv_channel_logos[name_] then return name end
+      for k,v in pairs(tv_channel_logos) do
+        local k_ = k:lower():gsub("%s+", "")
+        if name_ == k_ then return k end -- "NightLife" or "Nightlife"
+        if name_:match(k_) then return k end -- "ABC" <-> "ABC HD"
+        if k_:match(name_) then return k end -- "ABC HD" <-> "ABC"
+      end
+    end
+  
+    function get_tv_channel_image(name, control) 
+      local name_ = string.gsub(name, "^%s*(.-)%s*$", "%1") -- trim whitespace from filename
       if DebugFunction then print("get_tv_channel_image: '"..name_.."'") end --"get_tv_channel_image: 'ABC NEWS'"
       --print("Nightlife url: "..tv_channel_logos.Nightlife.url)
       if tv_channel_logos['FoxSports503HD'] then
@@ -1337,6 +1352,7 @@ if Controls then
           if System.IsEmulating then load_tv_channel_images() end
         end
   	  end
+      name_ = GetTvChannelName(name_)
       if tv_channel_logos[name_] then 
         if DebugFunction then print('channel '..name_..' logo exists') end
         local file_ = nil
@@ -1372,11 +1388,16 @@ if Controls then
       if f~=nil then -- file exists
         io.close(f)
         local config = rapidjson.load(path)
-        if DebugFunction then
-          print("config loaded size: "..#config)
-          print("config type: "..type(config))
-        end --helper.TablePrint(config)
-        --print("nightlife url: "..config.Nightlife.url)
+        if config then
+          if DebugFunction then
+            local i = 0
+            for _ in pairs(config) do i=i+1 end 
+            print("config loaded size: "..i..", type: "..type(config))
+          end --helper.TablePrint(config)
+          --print("nightlife url: "..config.Nightlife.url)
+        else
+          print("config file not loaded: "..path)
+        end
         return config
       else 
         if DebugFunction then print('file not found') end
