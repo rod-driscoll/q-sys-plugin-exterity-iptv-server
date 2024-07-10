@@ -27,6 +27,7 @@
 	local playlists = {}
   local playlist_images = {}
 	local displays = {}
+  local last_image = {}
 	
 	function ErrorHandler(err)
     print('ERROR:', err)
@@ -293,27 +294,29 @@
 
         if status_.power then -- power on
           if status_.playlist and #status_.playlist>0 then
-            if DebugFunction then print('is playlist: '..#status_.playlist) end
+            if DebugFunction then print('is playlist['..#status_.playlist..']: '..tostring(status_.playlist)) end
             local kvp_  = { ['name'] = status_.playlist }
             local p, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
             if p then 
               UpdateLogo(playlist_images[p], i)    
-              if DebugFunction then print('UpdateDevice: UpdateLogo for '..i) end
-
+              if DebugFunction then print('UpdateDevice( '..i..') UpdateLogo with playlist done') end
             end
           else
-            if DebugFunction then print('not playlist: '..status_.playlist) end
-            UpdateLogo('', i)
-            if DebugFunction then print('UpdateDevice: cleared image for '..i) end
+            --if DebugFunction then print('not playlist: '..status_.playlist) end
+            --UpdateLogo('', i)
+            --if DebugFunction then print('UpdateDevice: cleared image for '..i) end
           end
+          
           if string.len(status_.channel) > 0 and not status_.jobs_pending then -- channel exists, set feedback
             if DebugFunction then print('channel not empty, power is on, no jobs pending') end
-            Controls['ChannelSelect'][i].String = status_.channel 
-            Controls['CurrentContent'][i].String = status_.channel
-            Controls['PowerOnChannel'][i].String = status_.channel
-            --tv_channel_logos
-            get_tv_channel_image(status_.channel, i)
-            Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
+            if not (status_.playlist and #status_.playlist>0) then
+              Controls['ChannelSelect'][i].String = status_.channel 
+              Controls['CurrentContent'][i].String = status_.channel
+              Controls['PowerOnChannel'][i].String = status_.channel
+              --tv_channel_logos
+              get_tv_channel_image(status_.channel, i)
+              Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
+            end
           else -- need to force it to a channel
             if status_.is_tv_playlist and Controls['ChannelSelect'][i] and string.len(Controls['ChannelSelect'][i].String) > 0 then --it's on a blank channel, have to clear selector before forcing it
               if string.len(Controls['PowerOnChannel'][i].String) < 1 then -- the power on channel is blank
@@ -434,7 +437,7 @@
 		end
     
     if not found_ then -- this is a new device, put it into the next empty component
-      print('NEW DEVICE ['..i..'] '..devices[i].name..' id: '..devices[i].id) --found the device, now find all matches
+      if DebugFunction then print('NEW DEVICE ['..i..'] '..devices[i].name..' id: '..devices[i].id) end--found the device, now find all matches
       found_ = false
       for j=1, #Controls['DeviceSelect'] do --iterate through all devics in data
         if not found_ then -- go until an empty one is found
@@ -445,7 +448,7 @@
         end
       end
       if not found_ then
-        print('NOT ASSIGNED ['..i..'] '..devices[i].name..' id: '..devices[i].id) 
+        if DebugFunction then print('NOT ASSIGNED ['..i..'] '..devices[i].name..' id: '..devices[i].id) end
       end
     end
   end
@@ -453,13 +456,15 @@
   function GetDeviceData(i) -- devices is the data. i is the component index
     if Controls['DeviceSelect'][i].String~=nil and Controls['DeviceSelect'][i].String~="" then -- e.g. "Dining"
       -- find the item in the data table where "name":"Dining" 
-      print("GetDeviceData("..i.."): ".. Controls['DeviceSelect'][i].String)
+      if DebugFunction then print("GetDeviceData("..i.."): ".. Controls['DeviceSelect'][i].String) end
       local kvp_  = { ['name'] = Controls['DeviceSelect'][i].String }
       local j, device_ = helper.GetArrayItemWithKey(devices, kvp_)
-      if device_==nil then
-        print("GetDeviceData("..i.."): ".. Controls['DeviceSelect'][i].String.." NOT FOUND in "..#devices.. " devices") 
-      else
-        print("GetArrayItemWithKey() ["..j.."]: ".. device_.name)
+      if DebugFunction then 
+        if device_==nil then
+          print("GetDeviceData("..i.."): ".. Controls['DeviceSelect'][i].String.." NOT FOUND in "..#devices.. " devices") 
+        else
+          print("GetArrayItemWithKey() ["..j.."]: ".. device_.name)
+        end
       end
       return j, device_
     end
@@ -524,7 +529,7 @@
     end
     --add item to queue
     table.insert(logoQueue, item_)
-    print("QueuLogoUpdate adding #"..#logoQueue)
+    if DebugFunction then print("QueuLogoUpdate adding #"..#logoQueue) end
 
     if not LogoTimer:IsRunning() then
       LogoTimer.EventHandler = function(timer) -- EventHandler
@@ -550,7 +555,7 @@
               end
             end
             table.remove(logoQueue, i)
-            print("QueuLogoUpdate remove #"..#logoQueue)
+            if DebugFunction then print("QueuLogoUpdate remove #"..#logoQueue) end
           end
         end
       end
@@ -564,14 +569,20 @@
     local ctl_ = control
     if type(ctl_)=='number' then ctl_ = Controls['Logo'][ctl_] end
     if ctl_~=nil then
-      --if not helper.equals(Controls.PlaylistLogo.Style, data, false) then
-      if data=='' then ctl_.Legend = '.' -- needs to be a non whitespace character or it doesn't work
-      else ctl_.Legend = rapidjson.encode({IconData = Crypto.Base64Encode(data)}) end
-      QueuLogoUpdate(data, control)
-      --control.Style = val  -- Style worked on buttons but not on LEDs
-      --if val~='' then control.Color = "#00FFFFFF"  -- transparent
-      --else            control.Color = "#808080" -- grey
-      --end
+      
+      if last_image[ctl_]~=nil and last_image[ctl_]==data then -- don't refresh with the same image
+        if DebugFunction then print("UpdateLogo: not refreshing with the same image") end
+      else  
+        last_image[ctl_] = data
+        --if not helper.equals(Controls.PlaylistLogo.Style, data, false) then
+        if data=='' then ctl_.Legend = '.' -- needs to be a non whitespace character or it doesn't work
+        else ctl_.Legend = rapidjson.encode({IconData = Crypto.Base64Encode(data)}) end
+        QueuLogoUpdate(data, control)
+        --control.Style = val  -- Style worked on buttons but not on LEDs
+        --if val~='' then control.Color = "#00FFFFFF"  -- transparent
+        --else            control.Color = "#808080" -- grey
+        --end
+      end
     end
   end
 

@@ -17,15 +17,13 @@
   -- update: logos changed to indicators instead of buttons so they can be overlayed on combo boxes for channel select
   -- update: resends a similar inmage after each image to deal with a QSD bug with LED images
   -- update: logos will look for a logo with similar name, searching case insensitive, removing whitespace, sub and super strings  
-    -- TODO: keep track of last icon and don't update on poll if not required.
-    -- TODO: remove test logo code
-
--- known issue: if device name is changed in Vitec server then the device needs to be re-selected in the device select drop down.
-
+-- 20240710 v1.0.4 Rod Driscoll<rod@theavitgroup.com.au>
+  -- fix: don't load tv channel logo if display is on a non-television playlist
+  -- update: keep track of last icon and don't update on poll if not required
 
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane
-  Version = "1.0.3",
+  Version = "1.0.4",
   Id = "exterity-iptv-server.plugin",
   Description = "Plugin controlling Exterity IPTV",
   ShowDebug = true,
