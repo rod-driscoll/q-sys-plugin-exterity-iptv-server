@@ -20,6 +20,7 @@
 -- 20240710 v1.0.4 Rod Driscoll<rod@theavitgroup.com.au>
   -- fix: don't load tv channel logo if display is on a non-television playlist
   -- update: keep track of last icon and don't update on poll if not required
+  -- update: query devices button clears display icon cache so it forces the icons to update
 
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane

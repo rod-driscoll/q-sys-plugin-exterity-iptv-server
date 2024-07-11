@@ -1249,7 +1249,10 @@
     end
   end
 
-  Controls.QueryDevices.EventHandler = QueryDevices
+  Controls.QueryDevices.EventHandler = function()
+    last_image = {} -- clear cache soo it forces an update
+    QueryDevices()
+  end
   Controls.QueryChannels.EventHandler = QueryChannels
   Controls.QueryPlaylists.EventHandler = QueryPlaylists
   Controls.LoadLogos.EventHandler = load_tv_channel_images
