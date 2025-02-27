@@ -560,7 +560,7 @@
                   data_ = logoQueue[i].data:sub(1,pos_-1)..string.char(byte_)..logoQueue[i].data:sub(pos_+1)
                 end               
                 ctl_.Legend = rapidjson.encode({IconData = Crypto.Base64Encode(data_)})
-                ctl_.Boolean = not ctl_.Boolean -- .Legend property doesn't evoke an event
+                ctl_:Trigger() --ctl_.Boolean = not ctl_.Boolean -- .Legend property doesn't evoke an event
               end
             end
             table.remove(logoQueue, i)
