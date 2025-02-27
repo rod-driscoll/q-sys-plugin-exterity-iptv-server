@@ -21,10 +21,21 @@
   -- fix: don't load tv channel logo if display is on a non-television playlist
   -- update: keep track of last icon and don't update on poll if not required
   -- update: query devices button clears display icon cache so it forces the icons to update
+-- 20240813 v1.0.5 Rod Driscoll<rod@theavitgroup.com.au>
+  -- update: removed a few unneccesary whitespaces in lines
+  -- fix: log when write files fail
+  -- update: changed emulation file path because sub folders aren't working in 9.12.1
+  -- update: force to a channel when detecting the player has started and not loaded the previous channel
+  -- known issue: there is QSD a bug where images on indicators displays the previous image rather than current
+    -- there is currently no way to display logos overlaying combo boxes that works correctly on all UCI platforms
+    -- to get a working logo overlaying the combo box; 
+      -- create UCI LEDs and copy the component["icon 1"].Legend onto that LED,
+      -- and give it a css 'background-color: transparent;' to hide the LED circle gradient
+      -- logos won't work in QSD so you'll need to test the icons are working on a live core with UCI viewer or a touch panel
 
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane
-  Version = "1.0.4",
+  Version = "1.0.5",
   Id = "exterity-iptv-server.plugin",
   Description = "Plugin controlling Exterity IPTV",
   ShowDebug = true,

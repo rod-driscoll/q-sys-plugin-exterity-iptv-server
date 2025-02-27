@@ -94,7 +94,7 @@ table.insert(ctrls, {
 table.insert(ctrls, {
   Name         = "PlaylistLogo",
   ControlType  = "Indicator",
-  IndicatorType= "Led",
+  IndicatorType= "LED",
   PinStyle     = "Output",
   UserPin      = true,
   Count        = 1
@@ -272,7 +272,7 @@ table.insert(ctrls, {
 table.insert(ctrls, {
   Name         = "Logo",
   ControlType  = "Indicator",
-  IndicatorType= "Led",
+  IndicatorType= "LED",
   PinStyle     = "Output",
   UserPin      = true,
   Count        = props['Display Count'].Value

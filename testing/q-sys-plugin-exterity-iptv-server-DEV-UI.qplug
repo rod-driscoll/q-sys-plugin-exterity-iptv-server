@@ -1,11 +1,11 @@
 -- Q-Sys plugin for Exterity IPTV server
 -- <https://github.com/rod-driscoll/q-sys-plugin-exterity-iptv-server>
--- 20231128 v1.0.0 Rod Driscoll<rod@theavitgroup.com.au>
+-- 20240813 v1.0.5 Rod Driscoll<rod@theavitgroup.com.au>
 
 -- Information block for the plugin
 PluginInfo = {
   Name = "Exterity~IPTV Server-DEV-UI", -- The tilde here indicates folder structure in the Shematic Elements pane
-  Version = "1.0.0-DEV-UI",
+  Version = "1.0.5-DEV-UI",
   Id = "exterity-iptv-server.plugin-DEV-UI",
   Description = "Plugin controlling Exterity IPTV-DEV-UI",
   ShowDebug = true,
@@ -169,13 +169,44 @@ function GetControls(props)
   })
   table.insert(ctrls, {
     Name         = "PlaylistLogo",
-    ControlType  = "Button",
-    ButtonType   = "Trigger",
+    ControlType  = "Indicator",
+    IndicatorType= "LED",
     PinStyle     = "Output",
     UserPin      = true,
     Count        = 1
   })
-  
+  table.insert(ctrls, {
+    Name         = "LoadLogos",
+    ControlType  = "Button",
+    ButtonType   = "Trigger",
+    PinStyle     = "Input",
+    UserPin      = true,
+    Count        = 1
+  })
+  table.insert(ctrls, {
+    Name         = "QueryDevices",
+    ControlType  = "Button",
+    ButtonType   = "Trigger",
+    PinStyle     = "Input",
+    UserPin      = true,
+    Count        = 1
+  })
+  table.insert(ctrls, {
+    Name         = "QueryChannels",
+    ControlType  = "Button",
+    ButtonType   = "Trigger",
+    PinStyle     = "Input",
+    UserPin      = true,
+    Count        = 1
+  })
+  table.insert(ctrls, {
+    Name         = "QueryPlaylists",
+    ControlType  = "Button",
+    ButtonType   = "Trigger",
+    PinStyle     = "Input",
+    UserPin      = true,
+    Count        = 1
+  })
     -- Individual Devices --
   table.insert(ctrls, {
     Name         = "DeviceSelect",
@@ -316,8 +347,8 @@ function GetControls(props)
   })
   table.insert(ctrls, {
     Name         = "Logo",
-    ControlType  = "Button",
-    ButtonType   = "Trigger",
+    ControlType  = "Indicator",
+    IndicatorType= "LED",
     PinStyle     = "Output",
     UserPin      = true,
     Count        = props['Display Count'].Value
@@ -390,7 +421,15 @@ function GetControlLayout(props)
     table.insert(graphics,{Type="Text",Text=GetPrettyName(),Position={15,200},Size={380,14},FontSize=10,HTextAlign="Right", Color=colors.Gray})
   
   elseif(CurrentPage == 'System') then 
-    layout["PlaylistLogo"] = {PrettyName="Settings~PlaylistLogo"      ,Position={460,  9},Size={180,180},Style="Button",Color=colors.Transparent}
+    layout["PlaylistLogo"] = {PrettyName="Settings~PlaylistLogo"      ,Position={460,  9},Size={180,180},Style="Led",Color=colors.Transparent, StrokeWidth=0, CornerRadius=0 }
+    table.insert(graphics,{Type="Text",Text="Query devices"           ,Position={460,200},Size={135, 16},FontSize=14,HTextAlign="Left"})
+    layout["QueryDevices"] = {PrettyName="Settings~QueryDevices"      ,Position={604,200},Size={ 36, 16},FontSize=12,Style="Button"}
+    table.insert(graphics,{Type="Text",Text="Query channels"          ,Position={460,216},Size={135, 16},FontSize=14,HTextAlign="Left"})
+    layout["QueryChannels"] = {PrettyName="Settings~QueryChannels"    ,Position={604,216},Size={ 36, 16},FontSize=12,Style="Button"}
+    table.insert(graphics,{Type="Text",Text="Query playlists"         ,Position={460,232},Size={135, 16},FontSize=14,HTextAlign="Left"})
+    layout["QueryPlaylists"] = {PrettyName="Settings~QueryPlaylists"  ,Position={604,232},Size={ 36, 16},FontSize=12,Style="Button"}
+    table.insert(graphics,{Type="Text",Text="Reload logo config"      ,Position={460,248},Size={135, 16},FontSize=14,HTextAlign="Left"})
+    layout["LoadLogos"] = {PrettyName="Settings~LogoLoad"             ,Position={604,248},Size={ 36, 16},FontSize=12,Style="Button"}
   
     table.insert(graphics,{Type="Text",Text="Device names"            ,Position={ 10,  5},Size={140, 16},FontSize=14,HTextAlign="Center"})
     layout["DeviceNames"] = {PrettyName="Settings~DeviceNames"        ,Position={ 10, 21},Size={140, 16},FontSize=12,Style="ComboBox"}
@@ -451,8 +490,7 @@ function GetControlLayout(props)
       table.insert(graphics,{Type="Text",Text="Device details"                  ,Position={276+x, 76+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
       layout["Details "..i] = {PrettyName="Device "..i.."~Details"              ,Position={388+x, 76+y},Size={140, 90},FontSize=12,HTextAlign="Left",Style="ListBox"}
    
-      layout["Logo "..i] = {PrettyName="Device "..i.."~PlaylistLogo"            ,Position={280+x, 92+y},Size={104, 74},Style="Button",Color=colors.Transparent,StrokeWidth=0}
-   
+      layout["Logo "..i] = {PrettyName="Device "..i.."~PlaylistLogo"            ,Position={280+x, 92+y},Size={104, 74},Style="Led",Color=colors.Transparent, StrokeWidth=0, CornerRadius=0 } 
     end
   
   end;

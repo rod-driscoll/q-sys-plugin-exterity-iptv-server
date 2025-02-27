@@ -21,11 +21,22 @@
 -- 20240710 v1.0.4 Rod Driscoll<rod@theavitgroup.com.au>
   -- fix: don't load tv channel logo if display is on a non-television playlist
   -- update: keep track of last icon and don't update on poll if not required
-  --update: query devices button clears display icon cache so it forces the icons to update
+  -- update: query devices button clears display icon cache so it forces the icons to update
+-- 20240813 v1.0.5 Rod Driscoll<rod@theavitgroup.com.au>
+  -- update: removed a few unneccesary whitespaces in lines
+  -- fix: log when write files fail
+  -- update: changed emulation file path because sub folders aren't working in 9.12.1
+  -- update: force to a channel when detecting the player has started and not loaded the previous channel
+  -- known issue: there is QSD a bug where images on indicators displays the previous image rather than current
+    -- there is currently no way to display logos overlaying combo boxes that works correctly on all UCI platforms
+    -- to get a working logo overlaying the combo box; 
+      -- create UCI LEDs and copy the component["icon 1"].Legend onto that LED,
+      -- and give it a css 'background-color: transparent;' to hide the LED circle gradient
+      -- logos won't work in QSD so you'll need to test the icons are working on a live core with UCI viewer or a touch panel
 
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane
-  Version = "1.0.4",
+  Version = "1.0.5",
   Id = "exterity-iptv-server.plugin",
   Description = "Plugin controlling Exterity IPTV",
   ShowDebug = true,
@@ -190,7 +201,7 @@ function GetControls(props)
   table.insert(ctrls, {
     Name         = "PlaylistLogo",
     ControlType  = "Indicator",
-    IndicatorType= "Led",
+    IndicatorType= "LED",
     PinStyle     = "Output",
     UserPin      = true,
     Count        = 1
@@ -368,7 +379,7 @@ function GetControls(props)
   table.insert(ctrls, {
     Name         = "Logo",
     ControlType  = "Indicator",
-    IndicatorType= "Led",
+    IndicatorType= "LED",
     PinStyle     = "Output",
     UserPin      = true,
     Count        = props['Display Count'].Value
@@ -540,8 +551,8 @@ if Controls then
   	
   	-- Device specific
   	local Path = 'api/public/control'
-    local config_filepath = (System.IsEmulating and 'design' or 'media')..'/logos/channel-logos.json'
-    local logos_filepath = (System.IsEmulating and 'design' or 'media')..'/logos/'
+    local config_filepath = (System.IsEmulating and 'design' or 'media/logos')..'/channel-logos.json'
+    local logos_filepath = (System.IsEmulating and 'design' or 'media/logos')..'/'
     local junk = ''
     local devices = {}
   	local channels = {}
@@ -583,7 +594,7 @@ if Controls then
   
   	function GetPowerAndChannel(device) -- a single device
   		if DebugFunction then print('GetPowerAndChannel('..device.name..')') end
-      local return_ = { ['channel'] = "", ['power'] = false, ['jobs_pending'] = false, ['playlist'] = "", ['is_tv_playlist'] = false, ['no_content'] = false }
+      local return_ = { ['channel'] = "", ['power'] = false, ['jobs_pending'] = false, ['playlist'] = "", ['is_tv_playlist'] = false, ['no_content'] = false, ['no_content_showing'] = false }
       if type(device.content) == "table" then
         local result_ = xpcall(function()
           if device.content~=nil then
@@ -592,7 +603,7 @@ if Controls then
               --print('channel:', device.content.channel.name)
               return_.channel = device.content.channel.name
               --if device.content.playlist~=nil then tv_chanel_playlist_id = device.content.playlist end
-            end         
+            end   
             if device.content.playlist~=nil then 
               local kvp_  = { ['id'] = device.content.playlist }
               local i, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
@@ -651,7 +662,7 @@ if Controls then
                       if type(params_) == "table" then TablePrint(params_.channel, 2) end
                     end
                   else --  type(params_) == "string"
-                    return_no_content = true -- probably an audio player
+                    return_.no_content = true -- probably an audio player
                     return_.channel = "" 
                     --return_.signage = false
                   end
@@ -660,7 +671,11 @@ if Controls then
             end
           end
         end
+        if device.content.channel==nil and device.content.playlist==nil then 
+          return_['no_content_showing'] = true
+        end
       end
+      
       return return_
     end
   
@@ -806,7 +821,7 @@ if Controls then
         local status_ = {}
         if type(device.content) == "table" then
           status_ = GetPowerAndChannel(device)
-          if DebugFunction then print('channel: '..status_.channel..', is_tv_playlist: '..tostring(status_.is_tv_playlist)..', power: '..tostring(status_.power)..', playlist: '..tostring(status_.playlist)..', signage: '..tostring(status_.signage)) end
+          if DebugFunction then print('channel: '..status_.channel..', is_tv_playlist: '..tostring(status_.is_tv_playlist)..', power: '..tostring(status_.power)..', playlist: '..tostring(status_.playlist)..', signage: '..tostring(status_.signage)..', jobs_pending: '..tostring(status_.jobs_pending)) end
           Controls['PlaylistSelect'][i].String = status_.playlist
           if display_==nil then
             Controls['PowerOn'][i].Boolean = status_.power
@@ -819,7 +834,7 @@ if Controls then
               local kvp_  = { ['name'] = status_.playlist }
               local p, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
               if p then 
-                UpdateLogo(playlist_images[p], i)    
+                UpdateLogo(playlist_images[p], i)
                 if DebugFunction then print('UpdateDevice( '..i..') UpdateLogo with playlist done') end
               end
             else
@@ -834,9 +849,13 @@ if Controls then
                 Controls['ChannelSelect'][i].String = status_.channel 
                 Controls['CurrentContent'][i].String = status_.channel
                 Controls['PowerOnChannel'][i].String = status_.channel
-                --tv_channel_logos
+                if status_.no_content_showing and device.status == 'online' then -- the player is showing the app icon and no logo, this happens when the app starts
+                  if DebugFunction then print("setting channel - because the system doesn't recall the previous channel on power up") end
+                  SetChannel(i, status_.channel) --Controls['ChannelSelect'][i]:Trigger()
+                end              --tv_channel_logos
                 get_tv_channel_image(status_.channel, i)
                 Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
+  
               end
             else -- need to force it to a channel
               if status_.is_tv_playlist and Controls['ChannelSelect'][i] and string.len(Controls['ChannelSelect'][i].String) > 0 then --it's on a blank channel, have to clear selector before forcing it
@@ -848,9 +867,9 @@ if Controls then
                     print("setting power on channel - because the system doesn't recall the previous channel on power up")
                     print("playlist: "..status_.playlist)
                   end
-                  Controls['ChannelSelect'][i].String = "" -- clear the string so we can force an event when we set it again
                   Controls['ChannelSelect'][i].String = Controls['PowerOnChannel'][i].String -- force the Event
                   Controls['CurrentContent'][i].String = Controls['PowerOnChannel'][i].String
+                  SetChannel(i, status_.channel) --Controls['ChannelSelect'][i]:Trigger()
                 end
               elseif not status_.is_tv_playlist then
                 if DebugFunction then print('not in TV channel playlist: '..status_.playlist..', clearing the current and startup channels') end
@@ -884,7 +903,7 @@ if Controls then
           if DebugFunction then print('no data: cleared image for '..i) end
           if display_==nil then
             Controls['PowerOn'][i].Boolean = false
-            Controls['PowerOff'][i].Boolean = false 
+            Controls['PowerOff'][i].Boolean = false
           end
           Controls['CurrentContent'][i].String = ""
         end
@@ -1037,8 +1056,8 @@ if Controls then
     local logoQueue = {}
   
     function QueuLogoUpdate(data, control) 
-      -- need to wait and send another value because the logo item has a bug where it always disaplys the previous sent image [QSD 9.10.2]
-      -- so we are modifying the image by one byte and re-sending that to use as a placeholder between images.
+      -- need to wait and send another value because the logo item has a bug where it always displays the previous sent image [QSD 9.10.2]
+      -- so we are re-sending a placeholder between images.
       local item_ = {}
       item_['control'] = control
       item_['ttl'] = 5 -- time to live in passes
@@ -1073,6 +1092,7 @@ if Controls then
                     data_ = logoQueue[i].data:sub(1,pos_-1)..string.char(byte_)..logoQueue[i].data:sub(pos_+1)
                   end               
                   ctl_.Legend = rapidjson.encode({IconData = Crypto.Base64Encode(data_)})
+                  ctl_:Trigger() --ctl_.Boolean = not ctl_.Boolean -- .Legend property doesn't evoke an event
                 end
               end
               table.remove(logoQueue, i)
@@ -1090,19 +1110,43 @@ if Controls then
       local ctl_ = control
       if type(ctl_)=='number' then ctl_ = Controls['Logo'][ctl_] end
       if ctl_~=nil then
-        
+  
         if last_image[ctl_]~=nil and last_image[ctl_]==data then -- don't refresh with the same image
-          if DebugFunction then print("UpdateLogo: not refreshing with the same image") end
-        else  
+          if DebugFunction then print("UpdateLogo: refreshing with the same image") end
+        end 
+        --else  
           last_image[ctl_] = data
           --if not helper.equals(Controls.PlaylistLogo.Style, data, false) then
-          if data=='' then ctl_.Legend = '.' -- needs to be a non whitespace character or it doesn't work
-          else ctl_.Legend = rapidjson.encode({IconData = Crypto.Base64Encode(data)}) end
-          QueuLogoUpdate(data, control)
-          --control.Style = val  -- Style worked on buttons but not on LEDs
-          --if val~='' then control.Color = "#00FFFFFF"  -- transparent
-          --else            control.Color = "#808080" -- grey
-          --end
+          if data and #data > 0 then
+            ctl_.Legend = rapidjson.encode({IconData = Crypto.Base64Encode(data)})
+            --ctl_.Boolean = not ctl_.Boolean -- .Legend property doesn't evoke an event
+            ctl_:Trigger()
+          else ctl_.Legend = '.' end -- needs to be a non whitespace character or it doesn't work
+          --[[ removing this because the issue only exists in QSD and the fix screws up the actual UCI
+            QueuLogoUpdate(data, control) 
+            control.Style = val                           -- Style works on buttons but not on LEDs
+            if val~='' then control.Color = "#00FFFFFF"   -- transparent
+            else            control.Color = "#808080" end -- grey
+          ]]
+        --end
+      end
+    end
+  
+    function SetChannel(device, name)
+      local i, device_ = GetDeviceData(device)
+      if DebugFunction then print('channel selected['..device..'] "'..name..'" for '..device_['name']..' type: '..device_['type']..' platform: '..device_['platform_name']) end
+      if string.len(name) > 0 then
+        --get channel uri
+        local kvp_  = { ['name'] = name }
+        local j, channel_ = helper.GetArrayItemWithKey(channels, kvp_)
+        if channel_~=nil then
+            Controls['CurrentContent'][device].String = name
+            UpdateLogo('', device)
+            if DebugFunction then print('channel select: cleared image for '..device) end
+            if Controls['PowerOn'][device].Boolean then
+              get_tv_channel_image(name, device)
+            end
+          PostRequest(Path.."/devices/"..device_['mac'].."/commands/channel", '{"uri":"'..channel_['uri']..'"}')
         end
       end
     end
@@ -1117,22 +1161,7 @@ if Controls then
         end
       
         Controls['ChannelSelect'][i].EventHandler = function(ctl) -- channel select
-          local j, device_ = GetDeviceData(i)
-          if DebugFunction then print('channel selected['..i..'] "'..ctl.String..'" for '..device_['name']..' type: '..device_['type']..' platform: '..device_['platform_name']) end
-          if string.len(ctl.String) > 0 then
-            --get channel uri
-            local kvp_  = { ['name'] = ctl.String }
-            local j, channel_ = helper.GetArrayItemWithKey(channels, kvp_)
-            if channel_~=nil then
-                Controls['CurrentContent'][i].String = ctl.String
-                UpdateLogo('', i)
-                if DebugFunction then print('channel select: cleared image for '..i) end
-                if Controls['PowerOn'][i].Boolean then
-                  get_tv_channel_image(ctl.String, i)
-                end
-              PostRequest(Path.."/devices/"..device_['mac'].."/commands/channel", '{"uri":"'..channel_['uri']..'"}')
-            end
-          end
+          SetChannel(i, ctl.String)
         end
         
         Controls['PlaylistSelect'][i].EventHandler = function(ctl) -- playlist select 
@@ -1285,8 +1314,12 @@ if Controls then
       if DebugFunction then print("config type: "..type(tbl)) end
       --helper.TablePrint(tbl)
       local file = io.open(path, "w")
-      file:write(json_string)
-      file:close()
+      if file then
+        file:write(json_string)
+        file:close()
+      else
+        print('ERROR: write config file path: '..path)
+      end
     end
   
     function get_filename_from_url(url)
@@ -1302,9 +1335,13 @@ if Controls then
     end
   
     function save_logo_to_file(name, data)
-      local f = io.open(logos_filepath..name, "wb") 
-      f:write(data)
-      f:close()
+      local file = io.open(logos_filepath..name, "wb")
+      if file then
+        file:write(data)
+        file:close()
+      else
+        print('ERROR: save_logo_to_file path: '..logos_filepath..name)
+      end
     end
   
     function get_tv_channel_logo(logo_tbl, key, control)
@@ -1358,7 +1395,7 @@ if Controls then
         --print("FoxSports503HD url: "..tv_channel_logos.FoxSports503HD.url)
       else 
         if DebugFunction then 
-          print('tv channel config file not loaded') 
+          --print('tv channel config file not loaded') 
           if System.IsEmulating then load_tv_channel_images() end
         end
   	  end
@@ -1527,7 +1564,7 @@ if Controls then
                 if Controls.PlaylistNames.String == playlists[i].name then
                   --if DebugFunction then print("playlists["..i.."].name: " .. playlists[i].name) end
                   UpdateLogo(data, Controls.PlaylistLogo)
-                  if DebugFunction then print('UpdatePlaylistControlDetails: UpdateLogo for '..playlists[i].name..' - len: '..#data_) end
+                  if DebugFunction then print('UpdatePlaylistControlDetails: UpdateLogo for '..playlists[i].name..' - len: '..#data) end
                 end
               end
             end
