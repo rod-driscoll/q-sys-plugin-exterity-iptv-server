@@ -21,10 +21,18 @@
   -- fix: don't load tv channel logo if display is on a non-television playlist
   -- update: keep track of last icon and don't update on poll if not required
   -- update: query devices button clears display icon cache so it forces the icons to update
+-- 20240813 v1.0.5 Rod Driscoll<rod@theavitgroup.com.au>
+  -- update: resend a different logo image instead of a modified image because the modified images aren't working
+  -- update: removed a few unneccesary whitespaces in lines
+  -- fix: log when write files fail
+  -- update: changed emulation file path because sub folders aren't working in 9.12.1
+  -- update: force to a channel when detecting the player has started and not loaded the previous channel
+  -- known issue: there is QSD a bug where images on indicators displays the previous image rather than current
+      -- view your project in UCI viewer instead of QSD to confirm icons are working
 
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane
-  Version = "1.0.4",
+  Version = "1.0.5",
   Id = "exterity-iptv-server.plugin",
   Description = "Plugin controlling Exterity IPTV",
   ShowDebug = true,
