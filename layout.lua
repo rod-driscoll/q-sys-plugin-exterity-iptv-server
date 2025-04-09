@@ -34,6 +34,9 @@ if(CurrentPage == 'Setup') then
   table.insert(graphics,{Type="Text",Text="Password"      ,Position={ 15,75},Size={100,16},FontSize=14,HTextAlign="Right"})
   layout["Password"] = {PrettyName="Settings~Password"    ,Position={120,75},Size={100,16},Style="Text",Color=colors.White,FontSize=12}
 
+  table.insert(graphics,{Type="Text",Text="Port"          ,Position={ 15,95},Size={100,16},FontSize=14,HTextAlign="Right"})
+  layout["Port"] = {PrettyName="Settings~Port"            ,Position={120,95},Size={100,16},Style="Text",Color=colors.White,FontSize=12}
+
   -- Status fields updated upon connect
   table.insert(graphics,{Type="GroupBox",Text="Status",Fill=colors.Background,StrokeWidth=1,CornerRadius=4,HTextAlign="Left",Position={5,135},Size={400,85}})
   layout["Status"] = {PrettyName="Status~Connection Status", Position={40,165}, Size={330,32}, Padding=4 }

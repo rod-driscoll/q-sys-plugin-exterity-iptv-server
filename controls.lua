@@ -31,6 +31,17 @@ table.insert(ctrls, {
   UserPin      = true,
   PinStyle     = "Input"
 })
+table.insert(ctrls, {
+  Name         = "Port",
+  ControlType  = "Text",
+  ControlUnit  = "Integer",
+  DefaultValue = "80",
+  Min          = 1,
+  Max          = 65535,
+  Count        = 1,
+  UserPin      = true,
+  PinStyle     = "Both"
+})
 
 -- Status Controls --
 table.insert(ctrls, {

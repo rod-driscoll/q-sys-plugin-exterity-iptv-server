@@ -32,10 +32,16 @@
       -- create UCI LEDs and copy the component["icon 1"].Legend onto that LED,
       -- and give it a css 'background-color: transparent;' to hide the LED circle gradient
       -- logos won't work in QSD so you'll need to test the icons are working on a live core with UCI viewer or a touch panel
+  -- update: playlist name added to currentContent
+  -- update: don't clear PowerOnChannel if there are no channels or playlists running
+-- 20250331 v1.0.6 Rod Driscoll<rod@theavitgroup.com.au>
+  -- update: added https support (enter 443 as the port number for https).
+  -- update: after a player is powered on and blank, check all previous commands then set player to the last successful channel in player log
+  -- update: only turn decoder off if there is no connected display
 
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane
-  Version = "1.0.5",
+  Version = "1.0.6",
   Id = "exterity-iptv-server.plugin",
   Description = "Plugin controlling Exterity IPTV",
   ShowDebug = true,

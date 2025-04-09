@@ -5,7 +5,7 @@
 -- Information block for the plugin
 PluginInfo = {
   Name = "Exterity~IPTV Server-DEV-UI", -- The tilde here indicates folder structure in the Shematic Elements pane
-  Version = "1.0.5-DEV-UI",
+  Version = "1.0.6-DEV-UI",
   Id = "exterity-iptv-server.plugin-DEV-UI",
   Description = "Plugin controlling Exterity IPTV-DEV-UI",
   ShowDebug = true,
@@ -106,6 +106,17 @@ function GetControls(props)
     Count        = 1,
     UserPin      = true,
     PinStyle     = "Input"
+  })
+  table.insert(ctrls, {
+    Name         = "Port",
+    ControlType  = "Text",
+    ControlUnit  = "Integer",
+    DefaultValue = "80",
+    Min          = 1,
+    Max          = 65535,
+    Count        = 1,
+    UserPin      = true,
+    PinStyle     = "Both"
   })
   
   -- Status Controls --
@@ -414,6 +425,9 @@ function GetControlLayout(props)
     
     table.insert(graphics,{Type="Text",Text="Password"      ,Position={ 15,75},Size={100,16},FontSize=14,HTextAlign="Right"})
     layout["Password"] = {PrettyName="Settings~Password"    ,Position={120,75},Size={100,16},Style="Text",Color=colors.White,FontSize=12}
+  
+    table.insert(graphics,{Type="Text",Text="Port"          ,Position={ 15,95},Size={100,16},FontSize=14,HTextAlign="Right"})
+    layout["Port"] = {PrettyName="Settings~Port"            ,Position={120,95},Size={100,16},Style="Text",Color=colors.White,FontSize=12}
   
     -- Status fields updated upon connect
     table.insert(graphics,{Type="GroupBox",Text="Status",Fill=colors.Background,StrokeWidth=1,CornerRadius=4,HTextAlign="Left",Position={5,135},Size={400,85}})

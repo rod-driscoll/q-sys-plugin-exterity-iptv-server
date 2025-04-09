@@ -46,8 +46,8 @@
     elseif Properties["Debug Print"].Value=="Function Calls" then
       DebugFunction=true
     elseif Properties["Debug Print"].Value=="All" then
-      --DebugTx,DebugRx,DebugFunction=true,true,true
-      DebugTx,DebugFunction=true,true,true
+      DebugTx,DebugRx,DebugFunction=true,true,true
+      --DebugTx,DebugFunction=true,true,true
     end
   end
 	-----------------------------------------------------------------------------------------------------------------------
@@ -112,7 +112,6 @@
             if device.jobs[i].status~=nil then
               if device.jobs[i].status == "PENDING" then return_.jobs_pending = true end
               if device.jobs[i].status == "SUCCESS" and (not found_successful_job_) and device.jobs[i].params~=nil then
-                found_successful_job_ = true
                 local params_ = rapidjson.decode(device.jobs[i].params)
                 print('successful job['..i..'], params type.'..type(params_))
                 if type(params_) == "table" then
@@ -122,6 +121,7 @@
                     --print('type(params_.channel): '..type(params_.channel))
                     if type(params_.channel) == "table" and params_.channel.name then
                       return_.channel = params_.channel.name 
+                      found_successful_job_ = true
                     end
                   elseif params_ and params_.manifest then -- a signage command
                     return_.channel = "" 
@@ -182,7 +182,7 @@
       print('sending '..command_..' to display component, type:', device['type'])
       SetDisplayCommand(display_, command_, true)
     end
-    if not display_ or device.type=='UHD Decoder' then -- send power to the decoder
+    if not display_ or command=='Display_on' then --device.type=='UHD Decoder'  then  --**only send power to the decoder if there's no display attached**
       command_ = command=='Display_off' and 'poweroff' or 'poweron'
       PostRequest(Path.."/devices/"..device['mac'].."/commands/"..command_, '') -- this will reset the channel
       --actually don't power it becaue it comes up in the wrong mode
@@ -194,13 +194,13 @@
     if device~=nil then
       display_ = (device['platform_name'] == nil or (string.len(device['platform_name']) < 1)) and displays[i] -- if there is no platform name then there is no display
     end
-    print('UpdateDisplayModule('..i..') component '..(display_==nil and 'is nil' or 'exists'))
+    print('UpdateDisplayModule('..i..') component '..(display_==nil and 'is nil' or type(display_)))
     Controls['EnableDisplay'][i].Boolean = display_ ~= nil
 		--Controls['DisplayIPAddress'][i].String = display_ ~= nil and device['ip'] or ''
 		Controls['DisplayIPAddress'][i].IsInvisible = display_ == nil
 		--Controls['DisplayStatus'][i].IsInvisible = display_ == nil
 
-    if display_ then 
+    if display_ and type(display_)~="boolean" then
       print("display["..i.."] module exists - updating controls")
       if display_['IPAddress'] then         
         display_['IPAddress'].String = device['ip']
@@ -305,6 +305,7 @@
               UpdateLogo(playlist_images[p], i)
               if DebugFunction then print('UpdateDevice( '..i..') UpdateLogo with playlist done') end
             end
+            Controls['CurrentContent'][i].String = status_.playlist
           else
             --if DebugFunction then print('not playlist: '..status_.playlist) end
             --UpdateLogo('', i)
@@ -340,17 +341,20 @@
                 SetChannel(i, status_.channel) --Controls['ChannelSelect'][i]:Trigger()
               end
             elseif not status_.is_tv_playlist then
-              if DebugFunction then print('not in TV channel playlist: '..status_.playlist..', clearing the current and startup channels') end
-              Controls['ChannelSelect'][i].String = "" -- clear the strings
+              if DebugFunction then print('not in TV channel playlist: '..status_.playlist..', clearing the current channels') end
               --Controls['ChannelSelect'][i].String = status_.playlist -- try inserting the playlist name
-              Controls['PowerOnChannel'][i].String = ""
+              Controls['ChannelSelect'][i].String = "" -- clear the strings
               Controls['CurrentContent'][i].String = status_.playlist
-              --[[
-              local kvp_  = { ['name'] = status_.playlist }
-              local p, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
-              Controls['Logo'][i].Style = playlist_images[p]
-              --Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
-              ]]--
+              if #status_.playlist<1 then
+                if DebugFunction then print('clearing the startup channels') end
+                Controls['PowerOnChannel'][i].String = ""
+                --[[
+                local kvp_  = { ['name'] = status_.playlist }
+                local p, playlist_ = helper.GetArrayItemWithKey(playlists, kvp_)
+                Controls['Logo'][i].Style = playlist_images[p]
+                --Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
+                ]]--
+              end
             end
           end
         else -- power off
@@ -665,12 +669,16 @@
       end  
 
       displays[i] = Component.New(Properties['Display Code Name Prefix'].Value..i) -- eg "Display_1"
+      if DebugFunction then 
+        print(Properties['Display Code Name Prefix'].Value..i..' has '..#Component.GetControls(displays[i])..' controls')
+      end
       if displays[i] then
         displays[i] = (#Component.GetControls(displays[i]))>0 and displays[i] or nil -- make it nil if it doesn't have any controls
       end
 
       if displays[i] then
         if displays[i]['IPAddress']~=nil then
+          Controls['DisplayIPAddress'][i].String = displays[i]['IPAddress'].String
           displays[i]['IPAddress'].EventHandler = function(ctl) 
             print('Display IPAddress ['..i..']: '..tostring(ctl.String))
             Controls['DisplayIPAddress'][i].String = ctl.String
@@ -683,12 +691,15 @@
           end
         end
         if displays[i]['PowerStatus']~=nil then
+          UpdateDisplayPowerStatus(i)
           displays[i]['PowerStatus'].EventHandler = function(ctl) 
             print('Display PowerStatus ['..i..']: '..tostring(ctl.Boolean))
             UpdateDisplayPowerStatus(i)
           end
         end
         if displays[i]['Status']~=nil then
+          Controls['DisplayStatus'][i].Value  = displays[i]['Status'].Value
+          Controls['DisplayStatus'][i].String = displays[i]['Status'].String
           displays[i]['Status'].EventHandler = function(ctl) 
             print('Display ConnectionStatus ['..i..']: '..ctl.String)
             Controls['DisplayStatus'][i].Value = ctl.Value
@@ -1014,7 +1025,7 @@
         Controls.PlaylistDetails.Choices = helper.UpdateItems(playlist_)
       end
       --if DebugFunction then print('get image url: '..playlist_.img) end
-      local url = 'http://'..Controls.IPAddress.String..playlist_.img
+      local url = 'http'..(Controls.Port.String=="443" and "s" or "")..'://'..Controls.IPAddress.String..playlist_.img
       --if DebugTx then print("Sending image GET request: " .. url) end
       -- not using GetRequest() because it formats the '?' and '=' badly
       HttpClient.Download({ 
@@ -1118,11 +1129,12 @@
 	local StatusState = { OK = 0, COMPROMISED = 1, FAULT = 2, NOTPRESENT = 3, MISSING = 4, INITIALIZING = 5}  -- Status states in designer
 	-- Variables
 	local RequestTimeout = 10           -- Timeout of the connection in seconds
-	local Port = 80                     -- Port to use (if not 80 or 443)
+	--local Port = 80                     -- Port to use (if not 80 or 443)
+
 	-- Functions
 	-- Function that sets plugin status
 	function ReportStatus(state, msg)
-		if DebugFunction then print("ReportStatus() called:" .. state) end
+		if DebugFunction then print("ReportStatus() called: " .. state) end
 		local msg = msg or ""
 		Controls.Status.Value = StatusState[state]  -- Sets status state
 		Controls.Status.String = msg  -- Sets status message
@@ -1161,12 +1173,12 @@
 		}
 		-- Generate the URL of the request using HTTPClient formatter
 		url = HttpClient.CreateUrl({
-			["Host"] = 'http://'..Controls.IPAddress.String,
-			--["Port"] = Port,
+			["Host"] = 'http'..(Controls.Port.String=="443" and "s" or "")..'://'..Controls.IPAddress.String,
+			--["Port"] = Controls.Port.Value:match('%d+'),
 			["Path"] = path
 			--["Query"] = QueryData
 		})
-    url = 'http://'..Controls.IPAddress.String..'/'..path
+    url = 'http'..(Controls.Port.String=="443" and "s" or "")..'://'..Controls.IPAddress.String..'/'..path
 
 		if DebugTx then print("Sending GET request: " .. url) end
 		HttpClient.Download({ 
@@ -1191,7 +1203,7 @@
 		
 		-- Generate the URL of the request using HTTPClient formatter
 		url = HttpClient.CreateUrl({
-			["Host"] = 'http://'..Controls.IPAddress.String,
+			["Host"] = 'http'..(Controls.Port.String=="443" and "s" or "")..'://'..Controls.IPAddress.String,
 			["Path"] = path
 		})
 
@@ -1199,8 +1211,8 @@
 		HttpClient.Upload({ 
 			Url          = url,
 			Headers      = headers,
-			User         = Controls["Username"].String,  -- Only needed if device requires a sign in
-			Password     = Controls["Password"].String,  -- Only needed if device requires a sign in
+			User         = Controls["Username"].String or "",  -- Only needed if device requires a sign in
+			Password     = Controls["Password"].String or "",  -- Only needed if device requires a sign in
 			Data         = data,
 			Method       = "POST",
 			Timeout      = RequestTimeout,
@@ -1242,6 +1254,7 @@
 	-- EventHandlers
 	-----------------------------------------------------------------------------------------------------------------------
   Controls.IPAddress.EventHandler = initialize
+  Controls.Port.EventHandler = initialize
 
   Controls.DeviceNames.EventHandler = function(ctl)
     if DebugFunction then print('device choice', ctl.String, ', num devices:', #devices) end
