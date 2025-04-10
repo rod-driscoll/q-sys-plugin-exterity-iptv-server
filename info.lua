@@ -37,7 +37,9 @@
 -- 20250331 v1.0.6 Rod Driscoll<rod@theavitgroup.com.au>
   -- update: added https support (enter 443 as the port number for https).
   -- update: after a player is powered on and blank, check all previous commands then set player to the last successful channel in player log
-  -- update: only turn decoder off if there is no connected display
+  -- update: only turn decoder off if there is no display or the display status is not OK
+  -- update: if there is no display or the display status is not OK then use the decoder power status for feedback
+  
 
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane

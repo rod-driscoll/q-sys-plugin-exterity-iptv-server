@@ -182,7 +182,7 @@
       print('sending '..command_..' to display component, type:', device['type'])
       SetDisplayCommand(display_, command_, true)
     end
-    if not display_ or command=='Display_on' then --device.type=='UHD Decoder'  then  --**only send power to the decoder if there's no display attached**
+    if command=='Display_on' or not display_ or (display_.Status and display_.Status.Value ~= 0) then --device.type=='UHD Decoder'  then  --**only send power to the decoder if there's no connected display attached**
       command_ = command=='Display_off' and 'poweroff' or 'poweron'
       PostRequest(Path.."/devices/"..device['mac'].."/commands/"..command_, '') -- this will reset the channel
       --actually don't power it becaue it comes up in the wrong mode
@@ -509,20 +509,31 @@
   end
   
   function UpdateDisplayPowerStatus(i)
-    if displays~=nil and displays[i]~=nil then
-      local power_ = false
-      if displays[i]['PowerStatus']~=nil and displays[i]['PanelStatus']~=nil then
+    local power_ = false
+    if displays and displays[i] and displays[i].Status and displays[i].Status.Value==0 then
+      if displays[i]['PowerStatus'] and displays[i]['PanelStatus'] then
         power_ = displays[i]['PowerStatus'].Boolean and displays[i]['PanelStatus'].Boolean
-      elseif displays[i]['PowerStatus']~=nil then
+      elseif displays[i]['PowerStatus'] then
         power_ = displays[i]['PowerStatus'].Boolean
-      elseif displays[i]['PanelStatus']~=nil then
+      elseif displays[i]['PanelStatus'] then
         power_ = displays[i]['PanelStatus'].Boolean
       end
-
-      Controls['PowerToggle'][i].Boolean = power_
-      Controls['PowerOn'][i].Boolean = power_
-      Controls['PowerOff'][i].Boolean = not power_
+    else -- if no display is online then use the player status
+      local _, device_ = GetDeviceData(i)
+      if device_ and device_.content then 
+        --device_.content.standby=='Unknown' was standby in the one scenario it was witnessed, never witnessed it with any other string value
+        if(device_.content.standby~=nil and device_.content.standby==true) then 
+          power_ = false
+        elseif(device_.content.standby~=nil and device_.content.standby==false)
+           or (device_.content.channel and device_.content.channel~='')
+           or (device_.content.playlist and device_.content.playlist~='') then
+          power_ = true
+        end
+      end
     end
+    Controls['PowerToggle'][i].Boolean = power_
+    Controls['PowerOn'][i].Boolean = power_
+    Controls['PowerOff'][i].Boolean = not power_
   end
 
   local logoQueue = {}
