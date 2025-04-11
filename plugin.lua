@@ -12,7 +12,7 @@ function GetPrettyName()
 end
 
 -- Optional function used if plugin has multiple pages
-local PageNames = {"Setup","System","Devices"} --List the pages within the plugin
+local PageNames = {"Setup","System","Devices","Decoder list","Display list","Custom list"} --List the pages within the plugin
 function GetPages(props)
   local pages = {}
   --[[ #include "pages.lua" ]]

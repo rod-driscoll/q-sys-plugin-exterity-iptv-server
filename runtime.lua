@@ -25,6 +25,7 @@
   local devices = {}
 	local channels = {}
 	local playlists = {}
+	local schedules = {}
   local playlist_images = {}
 	local displays = {}
   local last_image = {}
@@ -49,6 +50,9 @@
       DebugTx,DebugRx,DebugFunction=true,true,true
       --DebugTx,DebugFunction=true,true,true
     end
+    Controls["DebugFunction"].Boolean = DebugFunction
+    Controls["DebugTx"].Boolean = DebugTx
+    Controls["DebugRx"].Boolean = DebugRx
   end
 	-----------------------------------------------------------------------------------------------------------------------
 	-- Device control functions
@@ -254,6 +258,13 @@
         Controls['DeviceSelect'][i].String = ''
         Controls['DeviceName'][i].String = ''
         Controls['Platform'][i].String = ''
+        Controls['Type'][i].String = ''
+        Controls['Id'][i].String = ''
+        Controls['Location'][i].String = ''
+        Controls['Room'][i].String = ''
+        Controls['Schedule'][i].String = ''
+        Controls['Online'][i].String = ''
+        Controls['EnableDisplay'][i].String = ''
         Controls['HasDecoder'][i].Boolean = false
         Controls['PlaylistSelect'][i].String = ''
         --Controls['PlaylistSelect'][i].Choices = {}
@@ -263,6 +274,7 @@
         Controls['PowerOn'][i].Boolean = false
         Controls['PowerOff'][i].Boolean = false
         Controls['PowerToggle'][i].Boolean = false
+        --Controls['ExternalDisplayConnected'][i].Boolean = false
         UpdateLogo('', i)
         UpdateDisplayModule(i, device)
     else
@@ -274,16 +286,18 @@
       Controls['DeviceSelect'][i].String = device['name']
       Controls['DeviceName'][i].String = device['name']
       Controls['HasDecoder'][i].Boolean = (string.len(device['platform_name']) > 0)
+      Controls['Type'][i].String = device['type'] or ''
+      Controls['Id'][i].String = device['id'] or ''
+      Controls['Location'][i].String = device['location'] or ''
+      Controls['Room'][i].String = device['room'] or ''
+      Controls['Platform'][i].String = device['platform_name'] or ''
       local display_ = UpdateDisplayModule(i, device)
       if string.len(Controls['Details'][i].String) > 0 then
         Controls['Details'][i].String = helper.GetValueStringFromTable(device, Controls['Details'][i].String)
       else
         Controls['Details'][i].String = helper.GetValueStringFromTable(device, "mac: ")
       end
-      if string.len(device['platform_name']) > 0 then
-        Controls['Platform'][i].String = device['platform_name']
-      end
-    
+
       --CheckContent(device)
       --print('trying to update channel from device')
       local status_ = {}
@@ -291,7 +305,7 @@
         status_ = GetPowerAndChannel(device)
         if DebugFunction then print('channel: '..status_.channel..', is_tv_playlist: '..tostring(status_.is_tv_playlist)..', power: '..tostring(status_.power)..', playlist: '..tostring(status_.playlist)..', signage: '..tostring(status_.signage)..', jobs_pending: '..tostring(status_.jobs_pending)) end
         Controls['PlaylistSelect'][i].String = status_.playlist
-        if display_==nil then
+        if display_==nil or display_.Status and display_.Status.Value~=0 then
           Controls['PowerOn'][i].Boolean = status_.power
           Controls['PowerOff'][i].Boolean = not status_.power
         end
@@ -363,17 +377,18 @@
             Controls['CurrentContent'][i].String = status_.channel
             UpdateLogo('', i)
             if DebugFunction then print('Power off: cleared image for '..i) end
-          end 
+          end
         end
         if string.len(status_.channel) > 0 and not status_.jobs_pending then
           if DebugFunction then print('channel not empty') end
           Controls['PowerOnChannel'][i].String = status_.channel
         end
+        Controls['Schedule'][i].String = device.content.schedule or ''
       else 
         if DebugFunction then print("UpdateDevice - Type("..type(device.content)..") doesn't contain any channel or playlist data") end
         UpdateLogo('', i)
         if DebugFunction then print('no data: cleared image for '..i) end
-        if display_==nil then
+        if display_==nil or display_.Status and display_.Status.Value~=0 then
           Controls['PowerOn'][i].Boolean = false
           Controls['PowerOff'][i].Boolean = false
         end
@@ -483,31 +498,34 @@
   end
 
   function UpdateDeviceNames(data)  -- data is an array of devices
-    local names_ = {}
+    local names_ = { '' } -- add a blank name to the start so you can clear a device
     local assigned_idx_ = 0
-    for a,b in ipairs(data) do --iterate through devices and create a table of names to update Choices
-      if b['name'] then table.insert(names_, b['name']) end   
-      --[[ -- this is just for debugging
-      if b['name'] then  print('[1].name: ',b['name']) end
-      if b['ip'] then table.insert(uris_, b['ip']) end   
-      if b['mac'] then table.insert(macs_, b['mac']) end
-      for k,v in pairs(b) do
-        if a == 1 then print('['..a..']', k) end --print all keys
-      end --]]
-      -- assign unassigned devices to unassigned controls
-      -- look for the first control that is either empty or contains this device
-      for i=1, #Controls['DeviceSelect'] do
-        if Controls['DeviceSelect'][i].String=="" then AssignDevice(i,data[i]) break --unassigned so assign
-        elseif Controls['DeviceSelect'][i].String==b['name'] then break end -- assigned so stop looking
+    if data then
+      for a,b in ipairs(data) do --iterate through devices and create a table of names to update Choices
+        if b['name'] then table.insert(names_, b['name']) end   
+        --[[ -- this is just for debugging
+        if b['name'] then  print('[1].name: ',b['name']) end
+        if b['ip'] then table.insert(uris_, b['ip']) end   
+        if b['mac'] then table.insert(macs_, b['mac']) end
+        for k,v in pairs(b) do
+          if a == 1 then print('['..a..']', k) end --print all keys
+        end --]]
+        if Controls['AutoPopulate'].Boolean then
+          -- assign unassigned devices to unassigned controls
+          -- look for the first control that is either empty or contains this device
+          for i=1, #Controls['DeviceSelect'] do
+            if Controls['DeviceSelect'][i].String=="" then AssignDevice(i,data[i]) break --unassigned so assign
+            elseif Controls['DeviceSelect'][i].String==b['name'] then break end -- assigned so stop looking
+          end
+        end
       end
     end
-    table.insert(names_, '') -- add a blank name to the end so you can clear a device
     Controls.DeviceNames.Choices = names_
     for i=1, #Controls['DeviceSelect'] do
 		  Controls['DeviceSelect'][i].Choices = Controls.DeviceNames.Choices -- update the device selector choices
     end
   end
-  
+
   function UpdateDisplayPowerStatus(i)
     local power_ = false
     if displays and displays[i] and displays[i].Status and displays[i].Status.Value==0 then
@@ -518,6 +536,7 @@
       elseif displays[i]['PanelStatus'] then
         power_ = displays[i]['PanelStatus'].Boolean
       end
+      Controls['DisplayPowerFb'][i].Boolean = power_
     else -- if no display is online then use the player status
       local _, device_ = GetDeviceData(i)
       if device_ and device_.content then 
@@ -717,6 +736,17 @@
             Controls['DisplayStatus'][i].String = ctl.String
           end
         end
+
+        Controls['DisplayPowerOn'][i].EventHandler = function(ctl) -- power_on
+          if displays[i]['PowerOn']~=nil then displays[i]['PowerOn']:Trigger() end
+          if displays[i]['PanelOn']~=nil then displays[i]['PanelOn']:Trigger() end
+        end
+        Controls['DisplayPowerOff'][i].EventHandler = function(ctl) -- power_on
+          if     displays[i]['PanelOn']~=nil then displays[i]['PanelOff']:Trigger()
+          elseif displays[i]['PowerOn']~=nil then displays[i]['PowerOff']:Trigger()
+          end
+        end
+
       end
     end
   end
@@ -753,14 +783,14 @@
       print('updating devices')
       local changed_ = false
       for k,v in pairs(data) do
-        if devices[k] == nil then
+        if devices[k] == nil then -- populate the next unused location
           devices[k] = v
           changed_ = true
         else
           for k1,v1 in pairs(v) do
             if not (k1 == 'jobs' or k1 == 'content') then -- don't overwrite jobs and content with null
               if not helper.equals(devices[k][k1], v1, false) then
-                devices[k][k1] = v1
+                devices[k][k1] = v1 -- update the data in the device
                 changed_ = true
               end
             end
@@ -1063,6 +1093,24 @@
     end
   end
 	-----------------------------------------------------------------------------------------------------------------------
+	-- ParseSchedules
+	-----------------------------------------------------------------------------------------------------------------------
+  function ParseSchedules(data) -- data is an array of schedules
+		if DebugFunction then print('schedule data response: '..#data..' schedule found') end
+    if not helper.equals(schedules, data, false) then
+      print('updating schedules')
+      schedules = data
+      local names_ = {}
+      for a,b in ipairs(data) do
+        if b['name'] then
+          print('schedule['..b.id..']: '..b.name)
+        end 
+      end
+    else
+      print('schedules do not need updating: '..#schedules..' schedules exist')
+    end
+  end
+	-----------------------------------------------------------------------------------------------------------------------
 	-- Parse initial response
 	-----------------------------------------------------------------------------------------------------------------------
 	function QueryDevices()
@@ -1085,11 +1133,17 @@
     GetRequest(Path.."/playlists")
   end
 
+  function QuerySchedules()
+    if DebugFunction then print('QuerySchedules') end
+    GetRequest("api/schedule") -- not documented
+  end
+
   function QueryAll()
 		if DebugFunction then print('Query all') end
     QueryDevices()
     Timer.CallAfter(QueryChannels, 1) --wait 1 sec to avoid maximum execution
 		Timer.CallAfter(QueryPlaylists, 2) --wait 1 sec to avoid maximum execution 
+		Timer.CallAfter(QuerySchedules, 3) --wait 1 sec to avoid maximum execution 
 	end
 
   function ParseImage(img, idx)
@@ -1124,6 +1178,8 @@
           ParseChannels(data_)
         elseif data_[1]['orientation']~=nil then  -- playlists
           ParsePlaylists(data_)
+        elseif data_[1]['creator']~=nil then  -- schedules
+          ParseSchedules(data_)
         end
       elseif data_['mac']~=nil then -- response is a table
         ParseDevice(data_)
@@ -1243,6 +1299,7 @@
     load_event_handlers()
  
 		--ClearDevices() -- only do this if you want to reset all the modules
+    UpdateDeviceNames()
     if Controls.IPAddress.String~=nil and string.len(Controls.IPAddress.String)>0 then
       --GetRequest(Path.."/devices")
       QueryAll()
@@ -1281,7 +1338,6 @@
       UpdateDeviceControlDetails(device_) -- update 'Decoder_details'
       GetRequest(Path.."/devices/"..devices[i]['mac'])
     end
-
   end
 
   Controls.PlaylistNames.EventHandler = function(ctl)
@@ -1307,6 +1363,16 @@
   Controls.QueryPlaylists.EventHandler = QueryPlaylists
   Controls.LoadLogos.EventHandler = load_tv_channel_images
 
+  Controls.AutoPopulate.EventHandler = function(ctl)
+    if ctl.Boolean then
+      last_image = {} -- clear cache soo it forces an update
+      QueryDevices()
+    end
+  end
+
+  Controls.DebugFunction.EventHandler = function(ctl) DebugFunction = ctl.Boolean end
+  Controls.DebugTx.EventHandler = function(ctl) DebugTx = ctl.Boolean end
+  Controls.DebugRx.EventHandler = function(ctl) DebugRx = ctl.Boolean end
 	-----------------------------------------------------------------------------------------------------------------------
 	-- End of module
 	-----------------------------------------------------------------------------------------------------------------------

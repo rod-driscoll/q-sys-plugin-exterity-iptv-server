@@ -39,7 +39,10 @@
   -- update: after a player is powered on and blank, check all previous commands then set player to the last successful channel in player log
   -- update: only turn decoder off if there is no display or the display status is not OK
   -- update: if there is no display or the display status is not OK then use the decoder power status for feedback
-  
+  -- update: Added Auto populate players
+  -- update: Added Debug toggles
+  -- update: Added extra info to players such as schelules, room, id, location
+  -- update: Added layout pages for different views of the controls
 
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane

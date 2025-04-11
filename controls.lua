@@ -142,20 +142,44 @@ table.insert(ctrls, {
   UserPin      = true,
   Count        = 1
 })
+table.insert(ctrls, {
+  Name         = "AutoPopulate",
+  ControlType  = "Button",
+  ButtonType   = "Toggle",
+  PinStyle     = "Input",
+  UserPin      = true,
+  Count        = 1
+})
+table.insert(ctrls, {
+  Name         = "DebugFunction",
+  ControlType  = "Button",
+  ButtonType   = "Toggle",
+  PinStyle     = "Input",
+  UserPin      = true,
+  Count        = 1
+})
+table.insert(ctrls, {
+  Name         = "DebugTx",
+  ControlType  = "Button",
+  ButtonType   = "Toggle",
+  PinStyle     = "Input",
+  UserPin      = true,
+  Count        = 1
+})
+table.insert(ctrls, {
+  Name         = "DebugRx",
+  ControlType  = "Button",
+  ButtonType   = "Toggle",
+  PinStyle     = "Input",
+  UserPin      = true,
+  Count        = 1
+})
   -- Individual Devices --
 table.insert(ctrls, {
   Name         = "DeviceSelect",
   ControlType  = "Text",
   Style        = "ComboBox",
   PinStyle     = "Both",
-  UserPin      = true,
-  Count        = props['Display Count'].Value
-})
-table.insert(ctrls, {
-  Name         = "DeviceName",
-  ControlType  = "Text",
-  Style        = "ListBox",
-  PinStyle     = "Output",
   UserPin      = true,
   Count        = props['Display Count'].Value
 })
@@ -172,6 +196,14 @@ table.insert(ctrls, {
   ControlType  = "Text",
   Style        = "ComboBox",
   PinStyle     = "Both",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "DeviceName",
+  ControlType  = "Text",
+  Style        = "ListBox",
+  PinStyle     = "Output",
   UserPin      = true,
   Count        = props['Display Count'].Value
 })
@@ -208,7 +240,7 @@ table.insert(ctrls, {
   Count        = props['Display Count'].Value
 })
 table.insert(ctrls, {
-  Name         = "Address",
+  Name         = "Address",--Decoder IPAddress
   ControlType  = "Indicator",
   IndicatorType= "Text",
   PinStyle     = "Output",
@@ -217,6 +249,54 @@ table.insert(ctrls, {
 })
 table.insert(ctrls, {
   Name         = "Platform",
+  ControlType  = "Indicator",
+  IndicatorType= "Text",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "Type",
+  ControlType  = "Indicator",
+  IndicatorType= "Text",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "Id",
+  ControlType  = "Indicator",
+  IndicatorType= "Text",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "Location",
+  ControlType  = "Indicator",
+  IndicatorType= "Text",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "Room",
+  ControlType  = "Indicator",
+  IndicatorType= "Text",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "Schedule",
+  ControlType  = "Indicator",
+  IndicatorType= "Text",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "Group",
   ControlType  = "Indicator",
   IndicatorType= "Text",
   PinStyle     = "Output",
@@ -259,7 +339,7 @@ table.insert(ctrls, {
 table.insert(ctrls, {
   Name         = "PowerOn",
   ControlType  = "Button",
-  ButtonType   = "Toggle",
+  ButtonType   = "Trigger",
   PinStyle     = "Both",
   UserPin      = true,
   Count        = props['Display Count'].Value
@@ -267,8 +347,16 @@ table.insert(ctrls, {
 table.insert(ctrls, {
   Name         = "PowerOff",
   ControlType  = "Button",
-  ButtonType   = "Toggle",
+  ButtonType   = "Trigger",
   PinStyle     = "Both",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "PowerFb",
+  ControlType  = "Indicator",
+  IndicatorType= "LED",
+  PinStyle     = "Output",
   UserPin      = true,
   Count        = props['Display Count'].Value
 })
@@ -307,3 +395,69 @@ table.insert(ctrls, {
   PinStyle     = "Input",
   Count        = props['Display Count'].Value
 })
+table.insert(ctrls, {
+  Name         = "DisplayMACAddress",
+  ControlType  = "Text",
+  Count        = 1,
+  DefaultValue = "Leave blank to disable",
+  UserPin      = true,
+  PinStyle     = "Input",
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "DisplayName",
+  ControlType  = "Text",
+  Count        = 1,
+  UserPin      = true,
+  PinStyle     = "Input",
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "DisplayPowerOn",
+  ControlType  = "Button",
+  ButtonType   = "Trigger",
+  PinStyle     = "Both",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "DisplayPowerOff",
+  ControlType  = "Button",
+  ButtonType   = "Trigger",
+  PinStyle     = "Both",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "DisplayPowerFb",
+  ControlType  = "Indicator",
+  IndicatorType= "LED",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "CustomPowerOn",
+  ControlType  = "Button",
+  ButtonType   = "Trigger",
+  PinStyle     = "Both",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "CustomPowerOff",
+  ControlType  = "Button",
+  ButtonType   = "Trigger",
+  PinStyle     = "Both",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+table.insert(ctrls, {
+  Name         = "CustomPowerFb",
+  ControlType  = "Indicator",
+  IndicatorType= "LED",
+  PinStyle     = "Output",
+  UserPin      = true,
+  Count        = props['Display Count'].Value
+})
+

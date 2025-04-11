@@ -52,6 +52,14 @@ elseif(CurrentPage == 'System') then
   layout["QueryPlaylists"] = {PrettyName="Settings~QueryPlaylists"  ,Position={604,232},Size={ 36, 16},FontSize=12,Style="Button"}
   table.insert(graphics,{Type="Text",Text="Reload logo config"      ,Position={460,248},Size={135, 16},FontSize=14,HTextAlign="Left"})
   layout["LoadLogos"] = {PrettyName="Settings~LogoLoad"             ,Position={604,248},Size={ 36, 16},FontSize=12,Style="Button"}
+  table.insert(graphics,{Type="Text",Text="Auto populate"           ,Position={460,264},Size={135, 16},FontSize=14,HTextAlign="Left"})
+  layout["AutoPopulate"] = {PrettyName="Settings~AutoPopulate"      ,Position={604,264},Size={ 36, 16},FontSize=12,Style="Button"}
+  table.insert(graphics,{Type="Text",Text="Debug Function"          ,Position={460,280},Size={135, 16},FontSize=14,HTextAlign="Left"})
+  layout["DebugFunction"] = {PrettyName="Settings~DebugFunction"    ,Position={604,280},Size={ 36, 16},FontSize=12,Style="Button"}
+  table.insert(graphics,{Type="Text",Text="Debug Tx"                ,Position={460,296},Size={135, 16},FontSize=14,HTextAlign="Left"})
+  layout["DebugTx"] = {PrettyName="Settings~DebugTx"                ,Position={604,296},Size={ 36, 16},FontSize=12,Style="Button"}
+  table.insert(graphics,{Type="Text",Text="Debug Rx"                ,Position={460,312},Size={135, 16},FontSize=14,HTextAlign="Left"})
+  layout["DebugRx"] = {PrettyName="Settings~DebugRx"                ,Position={604,312},Size={ 36, 16},FontSize=12,Style="Button"}
 
   table.insert(graphics,{Type="Text",Text="Device names"            ,Position={ 10,  5},Size={140, 16},FontSize=14,HTextAlign="Center"})
   layout["DeviceNames"] = {PrettyName="Settings~DeviceNames"        ,Position={ 10, 21},Size={140, 16},FontSize=12,Style="ComboBox"}
@@ -75,8 +83,8 @@ elseif(CurrentPage == 'Devices') then
 
   for i=1, props['Display Count'].Value do
 
-    x = offset_[1]*math.floor(((i-1)/max_rows_)+.05)
-    y = offset_[2]*math.floor(((i-1)%max_rows_)+.05)
+    local x = offset_[1]*math.floor(((i-1)/max_rows_)+.05)
+    local y = offset_[2]*math.floor(((i-1)%max_rows_)+.05)
 
     table.insert(graphics,{Type="GroupBox",Text="Device "..i                  ,Position={ 14+x,  5+y},Size={526,172},FontSize=12,HTextAlign="Left",Fill=colors.Background,StrokeWidth=1,CornerRadius=4})
     -- column 1
@@ -111,8 +119,150 @@ elseif(CurrentPage == 'Devices') then
     layout["Platform "..i] = {PrettyName="Device "..i.."~Platform"            ,Position={388+x, 60+y},Size={140, 16},FontSize=12,Style="Text",Color=colors.White}
     table.insert(graphics,{Type="Text",Text="Device details"                  ,Position={276+x, 76+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
     layout["Details "..i] = {PrettyName="Device "..i.."~Details"              ,Position={388+x, 76+y},Size={140, 90},FontSize=12,HTextAlign="Left",Style="ListBox"}
- 
+
     layout["Logo "..i] = {PrettyName="Device "..i.."~PlaylistLogo"            ,Position={280+x, 92+y},Size={104, 74},Style="Led",Color=colors.Transparent, StrokeWidth=0, CornerRadius=0 } 
   end
 
-end;
+elseif CurrentPage == 'Decoder list' then
+  local columns_ = {
+    {Title="Name",            Id="DeviceSelect",   Cell={Style="ComboBox"}},
+    {Title="IP Address",      Id="Address",        Cell={Style="Text",       Color=colors.White}},
+    {Title="MAC Address",     Id="MACAddress",     Cell={Style="Text",       Color=colors.White}},
+    {Title="Status",          Id="Status",         Cell={Style="Text",       IsReadOnly=true,Color=colors.LightGray}},
+    {Title="Power On",        Id="PowerOn",        Cell={Style="Button",     Text="ON"}},
+    {Title="Power Off",       Id="PowerOff",       Cell={Style="Button",     Text="OFF"}},
+    {Title="Power Toggle",    Id="PowerToggle",    Cell={Style="Button",     Text="TOG"}},
+    {Title="Fb",              Id="PowerFb",        Cell={Style="Led"}},
+    {Title="Channel Select",  Id="ChannelSelect",  Cell={Style="ComboBox"}},
+    {Title="Playlist Select", Id="PlaylistSelect", Cell={Style="ComboBox"}},
+    {Title="Current Content", Id="CurrentContent", Cell={Style="Text",       Color=colors.White,WordWrap=true,IsReadOnly=true}},
+    {Title="Logo",            Id="Logo",           Cell={Style="Led",        Color=colors.Transparent, StrokeWidth=0, CornerRadius=0}},
+    {Title="PowerOnChannel",  Id="PowerOnChannel", Cell={Style="ComboBox"}},
+    {Title="Platform",        Id="Platform",       Cell={Style="Text",       Color=colors.White}},
+    {Title="Type",            Id="Type",           Cell={Style="Text",       Color=colors.White}},
+    {Title="Id",              Id="Id",             Cell={Style="Text",       Color=colors.White}},
+    {Title="Location",        Id="Location",       Cell={Style="Text",       Color=colors.White}},
+    {Title="Room",            Id="Room",           Cell={Style="Text",       Color=colors.White}},
+    {Title="Group",           Id="Group",          Cell={Style="Text",       Color=colors.White}},
+    {Title="Schedule",        Id="Schedule",       Cell={Style="Text",       Color=colors.White}},
+  }
+  local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
+  local h = 16
+  local x,y = 0,0
+  table.insert(graphics,{Type="GroupBox",Text="Decoder controls",Position={x,y},Size={4, 4},FontSize=10,HTextAlign="Left",Fill={242,237,174},StrokeWidth=1,CornerRadius=4})
+  local groupBoxId_ = #graphics
+  x,y = 3, 26 -- anchor
+  x=x+w.Number -- start after the number column
+  for _,v in ipairs(columns_) do
+    local tbl_= {Type="Text",FontSize=11,HTextAlign="Left"}
+    tbl_.Text=v.Title
+    tbl_.Position={x, y}
+    tbl_.Size={w[v.Cell.Style],h}
+    table.insert(graphics,tbl_)
+    x = x + tbl_.Size[1]
+  end
+  for i=1, props['Display Count'].Value do
+    x = 3 -- reset x anchor
+    y=y+h -- new row
+    table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+    x=x+w.Number -- start after the number column
+    for _,v in ipairs(columns_) do
+      local tbl_ = {}
+      for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
+      tbl_.PrettyName = "Device "..i.."~"..v.Id
+      tbl_.Position={x,y}
+      tbl_.Size={w[v.Cell.Style],h}
+      tbl_.FontSize=12
+      layout[v.Id..' '..i] = tbl_
+      x = x + tbl_.Size[1]
+    end
+  end
+  graphics[groupBoxId_].Size={x+h, y+h}
+
+elseif CurrentPage == 'Display list' then
+  local columns_ = {
+    {Title="Name",         Id="Name",        Cell={Style="Text"}},
+    {Title="IP Address",   Id="IPAddress",   Cell={Style="Text",   Color=colors.White}},
+    {Title="MAC Address",  Id="MACAddress",  Cell={Style="Text",   Color=colors.White}},
+    {Title="Status",       Id="Status",      Cell={Style="Text",   IsReadOnly=true,Color=colors.LightGray}},
+    {Title="Power On",     Id="PowerOn",     Cell={Style="Button", Text="ON"}},
+    {Title="Power Off",    Id="PowerOff",    Cell={Style="Button", Text="OFF"}},
+    {Title="Power Toggle", Id="PowerToggle", Cell={Style="Button", Text="TOG"}},
+    {Title="Fb",           Id="PowerFb",     Cell={Style="Led"}},
+  }
+  local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
+  local h = 16
+  local x,y = 0,0
+  table.insert(graphics,{Type="GroupBox",Text="Display controls",Position={x,y},Size={4, 4},FontSize=10,HTextAlign="Left",Fill={242,237,174},StrokeWidth=1,CornerRadius=4})
+  local groupBoxId_ = #graphics
+  x,y = 3, 26 -- anchor
+  x=x+w.Number -- start after the number column
+  for _,v in ipairs(columns_) do
+    local tbl_= {Type="Text",FontSize=11,HTextAlign="Left"}
+    tbl_.Text=v.Title
+    tbl_.Position={x, y}
+    tbl_.Size={w[v.Cell.Style],h}
+    table.insert(graphics,tbl_)
+    x = x + tbl_.Size[1]
+  end
+  for i=1, props['Display Count'].Value do
+    x = 3 -- reset x anchor
+    table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+    x=x+w.Number -- start after the number column
+    y=y+h -- new row
+    for _,v in ipairs(columns_) do
+      local tbl_ = {}
+      for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
+      tbl_.PrettyName = "Display "..i.."~"..v.Id
+      tbl_.Position={x,y}
+      tbl_.Size={w[v.Cell.Style],h}
+      tbl_.FontSize=12
+      layout['Display'..v.Id..' '..i] = tbl_
+      x = x + tbl_.Size[1]
+    end
+  end
+  graphics[groupBoxId_].Size={x+h, y+h}
+
+elseif CurrentPage == 'Custom list' then
+  local columns_ = {
+    {Title="Power On",     Id="PowerOn",     Cell={Style="Button", Text="ON"}},
+    {Title="Power Off",    Id="PowerOff",    Cell={Style="Button", Text="OFF"}},
+    {Title="Power Toggle", Id="PowerToggle", Cell={Style="Button", Text="TOG"}},
+    {Title="Fb",           Id="PowerFb",     Cell={Style="Led"}}
+  }
+  local x,y = 0,0
+  table.insert(graphics,{Type="GroupBox",Text="Custom controls",Position={x,y},Size={4, 4},FontSize=10,HTextAlign="Left",Fill={242,237,174},StrokeWidth=1,CornerRadius=4})
+  local groupBoxId_ = #graphics
+  
+  local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
+  local h = 16
+  x,y = 3, 26 -- anchor
+  x=x+w.Number -- start after the number column
+  for _,v in ipairs(columns_) do
+    local tbl_= {Type="Text",FontSize=11,HTextAlign="Left"}
+    tbl_.Text=v.Title
+    tbl_.Position={x, y}
+    tbl_.Size={w[v.Cell.Style],h}
+    table.insert(graphics,tbl_)
+    x = x + tbl_.Size[1]
+  end
+  for i=1, props['Display Count'].Value do
+    x = 3 -- reset x anchor
+    table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+    x=x+w.Number -- start after the number column
+    y=y+h -- new row
+    for _,v in ipairs(columns_) do
+      local tbl_ = {}
+      for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
+      tbl_.PrettyName = "Custom "..i.."~"..v.Id
+      tbl_.Position={x,y}
+      tbl_.Size={w[v.Cell.Style],h}
+      tbl_.FontSize=12
+
+      layout['Custom'..v.Id..' '..i] = tbl_
+      x = x + tbl_.Size[1]
+    end
+  end
+  graphics[groupBoxId_].Size={x+h, y+h}
+
+end

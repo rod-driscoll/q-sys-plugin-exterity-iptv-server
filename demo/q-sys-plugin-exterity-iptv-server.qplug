@@ -40,7 +40,10 @@
   -- update: after a player is powered on and blank, check all previous commands then set player to the last successful channel in player log
   -- update: only turn decoder off if there is no display or the display status is not OK
   -- update: if there is no display or the display status is not OK then use the decoder power status for feedback
-  
+  -- update: Added Auto populate players
+  -- update: Added Debug toggles
+  -- update: Added extra info to players such as schelules, room, id, location
+  -- update: Added layout pages for different views of the controls
 
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane
@@ -62,7 +65,7 @@ function GetPrettyName()
 end
 
 -- Optional function used if plugin has multiple pages
-local PageNames = {"Setup","System","Devices"} --List the pages within the plugin
+local PageNames = {"Setup","System","Devices","Decoder list","Display list","Custom list"} --List the pages within the plugin
 function GetPages(props)
   local pages = {}
   for ix,name in ipairs(PageNames) do
@@ -257,20 +260,44 @@ function GetControls(props)
     UserPin      = true,
     Count        = 1
   })
+  table.insert(ctrls, {
+    Name         = "AutoPopulate",
+    ControlType  = "Button",
+    ButtonType   = "Toggle",
+    PinStyle     = "Input",
+    UserPin      = true,
+    Count        = 1
+  })
+  table.insert(ctrls, {
+    Name         = "DebugFunction",
+    ControlType  = "Button",
+    ButtonType   = "Toggle",
+    PinStyle     = "Input",
+    UserPin      = true,
+    Count        = 1
+  })
+  table.insert(ctrls, {
+    Name         = "DebugTx",
+    ControlType  = "Button",
+    ButtonType   = "Toggle",
+    PinStyle     = "Input",
+    UserPin      = true,
+    Count        = 1
+  })
+  table.insert(ctrls, {
+    Name         = "DebugRx",
+    ControlType  = "Button",
+    ButtonType   = "Toggle",
+    PinStyle     = "Input",
+    UserPin      = true,
+    Count        = 1
+  })
     -- Individual Devices --
   table.insert(ctrls, {
     Name         = "DeviceSelect",
     ControlType  = "Text",
     Style        = "ComboBox",
     PinStyle     = "Both",
-    UserPin      = true,
-    Count        = props['Display Count'].Value
-  })
-  table.insert(ctrls, {
-    Name         = "DeviceName",
-    ControlType  = "Text",
-    Style        = "ListBox",
-    PinStyle     = "Output",
     UserPin      = true,
     Count        = props['Display Count'].Value
   })
@@ -287,6 +314,14 @@ function GetControls(props)
     ControlType  = "Text",
     Style        = "ComboBox",
     PinStyle     = "Both",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "DeviceName",
+    ControlType  = "Text",
+    Style        = "ListBox",
+    PinStyle     = "Output",
     UserPin      = true,
     Count        = props['Display Count'].Value
   })
@@ -323,7 +358,7 @@ function GetControls(props)
     Count        = props['Display Count'].Value
   })
   table.insert(ctrls, {
-    Name         = "Address",
+    Name         = "Address",--Decoder IPAddress
     ControlType  = "Indicator",
     IndicatorType= "Text",
     PinStyle     = "Output",
@@ -332,6 +367,54 @@ function GetControls(props)
   })
   table.insert(ctrls, {
     Name         = "Platform",
+    ControlType  = "Indicator",
+    IndicatorType= "Text",
+    PinStyle     = "Output",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "Type",
+    ControlType  = "Indicator",
+    IndicatorType= "Text",
+    PinStyle     = "Output",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "Id",
+    ControlType  = "Indicator",
+    IndicatorType= "Text",
+    PinStyle     = "Output",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "Location",
+    ControlType  = "Indicator",
+    IndicatorType= "Text",
+    PinStyle     = "Output",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "Room",
+    ControlType  = "Indicator",
+    IndicatorType= "Text",
+    PinStyle     = "Output",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "Schedule",
+    ControlType  = "Indicator",
+    IndicatorType= "Text",
+    PinStyle     = "Output",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "Group",
     ControlType  = "Indicator",
     IndicatorType= "Text",
     PinStyle     = "Output",
@@ -374,7 +457,7 @@ function GetControls(props)
   table.insert(ctrls, {
     Name         = "PowerOn",
     ControlType  = "Button",
-    ButtonType   = "Toggle",
+    ButtonType   = "Trigger",
     PinStyle     = "Both",
     UserPin      = true,
     Count        = props['Display Count'].Value
@@ -382,8 +465,16 @@ function GetControls(props)
   table.insert(ctrls, {
     Name         = "PowerOff",
     ControlType  = "Button",
-    ButtonType   = "Toggle",
+    ButtonType   = "Trigger",
     PinStyle     = "Both",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "PowerFb",
+    ControlType  = "Indicator",
+    IndicatorType= "LED",
+    PinStyle     = "Output",
     UserPin      = true,
     Count        = props['Display Count'].Value
   })
@@ -422,6 +513,72 @@ function GetControls(props)
     PinStyle     = "Input",
     Count        = props['Display Count'].Value
   })
+  table.insert(ctrls, {
+    Name         = "DisplayMACAddress",
+    ControlType  = "Text",
+    Count        = 1,
+    DefaultValue = "Leave blank to disable",
+    UserPin      = true,
+    PinStyle     = "Input",
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "DisplayName",
+    ControlType  = "Text",
+    Count        = 1,
+    UserPin      = true,
+    PinStyle     = "Input",
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "DisplayPowerOn",
+    ControlType  = "Button",
+    ButtonType   = "Trigger",
+    PinStyle     = "Both",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "DisplayPowerOff",
+    ControlType  = "Button",
+    ButtonType   = "Trigger",
+    PinStyle     = "Both",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "DisplayPowerFb",
+    ControlType  = "Indicator",
+    IndicatorType= "LED",
+    PinStyle     = "Output",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "CustomPowerOn",
+    ControlType  = "Button",
+    ButtonType   = "Trigger",
+    PinStyle     = "Both",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "CustomPowerOff",
+    ControlType  = "Button",
+    ButtonType   = "Trigger",
+    PinStyle     = "Both",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "CustomPowerFb",
+    ControlType  = "Indicator",
+    IndicatorType= "LED",
+    PinStyle     = "Output",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  
   return ctrls
 end
 
@@ -483,6 +640,14 @@ function GetControlLayout(props)
     layout["QueryPlaylists"] = {PrettyName="Settings~QueryPlaylists"  ,Position={604,232},Size={ 36, 16},FontSize=12,Style="Button"}
     table.insert(graphics,{Type="Text",Text="Reload logo config"      ,Position={460,248},Size={135, 16},FontSize=14,HTextAlign="Left"})
     layout["LoadLogos"] = {PrettyName="Settings~LogoLoad"             ,Position={604,248},Size={ 36, 16},FontSize=12,Style="Button"}
+    table.insert(graphics,{Type="Text",Text="Auto populate"           ,Position={460,264},Size={135, 16},FontSize=14,HTextAlign="Left"})
+    layout["AutoPopulate"] = {PrettyName="Settings~AutoPopulate"      ,Position={604,264},Size={ 36, 16},FontSize=12,Style="Button"}
+    table.insert(graphics,{Type="Text",Text="Debug Function"          ,Position={460,280},Size={135, 16},FontSize=14,HTextAlign="Left"})
+    layout["DebugFunction"] = {PrettyName="Settings~DebugFunction"    ,Position={604,280},Size={ 36, 16},FontSize=12,Style="Button"}
+    table.insert(graphics,{Type="Text",Text="Debug Tx"                ,Position={460,296},Size={135, 16},FontSize=14,HTextAlign="Left"})
+    layout["DebugTx"] = {PrettyName="Settings~DebugTx"                ,Position={604,296},Size={ 36, 16},FontSize=12,Style="Button"}
+    table.insert(graphics,{Type="Text",Text="Debug Rx"                ,Position={460,312},Size={135, 16},FontSize=14,HTextAlign="Left"})
+    layout["DebugRx"] = {PrettyName="Settings~DebugRx"                ,Position={604,312},Size={ 36, 16},FontSize=12,Style="Button"}
   
     table.insert(graphics,{Type="Text",Text="Device names"            ,Position={ 10,  5},Size={140, 16},FontSize=14,HTextAlign="Center"})
     layout["DeviceNames"] = {PrettyName="Settings~DeviceNames"        ,Position={ 10, 21},Size={140, 16},FontSize=12,Style="ComboBox"}
@@ -506,8 +671,8 @@ function GetControlLayout(props)
   
     for i=1, props['Display Count'].Value do
   
-      x = offset_[1]*math.floor(((i-1)/max_rows_)+.05)
-      y = offset_[2]*math.floor(((i-1)%max_rows_)+.05)
+      local x = offset_[1]*math.floor(((i-1)/max_rows_)+.05)
+      local y = offset_[2]*math.floor(((i-1)%max_rows_)+.05)
   
       table.insert(graphics,{Type="GroupBox",Text="Device "..i                  ,Position={ 14+x,  5+y},Size={526,172},FontSize=12,HTextAlign="Left",Fill=colors.Background,StrokeWidth=1,CornerRadius=4})
       -- column 1
@@ -542,11 +707,153 @@ function GetControlLayout(props)
       layout["Platform "..i] = {PrettyName="Device "..i.."~Platform"            ,Position={388+x, 60+y},Size={140, 16},FontSize=12,Style="Text",Color=colors.White}
       table.insert(graphics,{Type="Text",Text="Device details"                  ,Position={276+x, 76+y},Size={110, 16},FontSize=14,HTextAlign="Right"})
       layout["Details "..i] = {PrettyName="Device "..i.."~Details"              ,Position={388+x, 76+y},Size={140, 90},FontSize=12,HTextAlign="Left",Style="ListBox"}
-   
+  
       layout["Logo "..i] = {PrettyName="Device "..i.."~PlaylistLogo"            ,Position={280+x, 92+y},Size={104, 74},Style="Led",Color=colors.Transparent, StrokeWidth=0, CornerRadius=0 } 
     end
   
-  end;
+  elseif CurrentPage == 'Decoder list' then
+    local columns_ = {
+      {Title="Name",            Id="DeviceSelect",   Cell={Style="ComboBox"}},
+      {Title="IP Address",      Id="Address",        Cell={Style="Text",       Color=colors.White}},
+      {Title="MAC Address",     Id="MACAddress",     Cell={Style="Text",       Color=colors.White}},
+      {Title="Status",          Id="Status",         Cell={Style="Text",       IsReadOnly=true,Color=colors.LightGray}},
+      {Title="Power On",        Id="PowerOn",        Cell={Style="Button",     Text="ON"}},
+      {Title="Power Off",       Id="PowerOff",       Cell={Style="Button",     Text="OFF"}},
+      {Title="Power Toggle",    Id="PowerToggle",    Cell={Style="Button",     Text="TOG"}},
+      {Title="Fb",              Id="PowerFb",        Cell={Style="Led"}},
+      {Title="Channel Select",  Id="ChannelSelect",  Cell={Style="ComboBox"}},
+      {Title="Playlist Select", Id="PlaylistSelect", Cell={Style="ComboBox"}},
+      {Title="Current Content", Id="CurrentContent", Cell={Style="Text",       Color=colors.White,WordWrap=true,IsReadOnly=true}},
+      {Title="Logo",            Id="Logo",           Cell={Style="Led",        Color=colors.Transparent, StrokeWidth=0, CornerRadius=0}},
+      {Title="PowerOnChannel",  Id="PowerOnChannel", Cell={Style="ComboBox"}},
+      {Title="Platform",        Id="Platform",       Cell={Style="Text",       Color=colors.White}},
+      {Title="Type",            Id="Type",           Cell={Style="Text",       Color=colors.White}},
+      {Title="Id",              Id="Id",             Cell={Style="Text",       Color=colors.White}},
+      {Title="Location",        Id="Location",       Cell={Style="Text",       Color=colors.White}},
+      {Title="Room",            Id="Room",           Cell={Style="Text",       Color=colors.White}},
+      {Title="Group",           Id="Group",          Cell={Style="Text",       Color=colors.White}},
+      {Title="Schedule",        Id="Schedule",       Cell={Style="Text",       Color=colors.White}},
+    }
+    local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
+    local h = 16
+    local x,y = 0,0
+    table.insert(graphics,{Type="GroupBox",Text="Decoder controls",Position={x,y},Size={4, 4},FontSize=10,HTextAlign="Left",Fill={242,237,174},StrokeWidth=1,CornerRadius=4})
+    local groupBoxId_ = #graphics
+    x,y = 3, 26 -- anchor
+    x=x+w.Number -- start after the number column
+    for _,v in ipairs(columns_) do
+      local tbl_= {Type="Text",FontSize=11,HTextAlign="Left"}
+      tbl_.Text=v.Title
+      tbl_.Position={x, y}
+      tbl_.Size={w[v.Cell.Style],h}
+      table.insert(graphics,tbl_)
+      x = x + tbl_.Size[1]
+    end
+    for i=1, props['Display Count'].Value do
+      x = 3 -- reset x anchor
+      y=y+h -- new row
+      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+      x=x+w.Number -- start after the number column
+      for _,v in ipairs(columns_) do
+        local tbl_ = {}
+        for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
+        tbl_.PrettyName = "Device "..i.."~"..v.Id
+        tbl_.Position={x,y}
+        tbl_.Size={w[v.Cell.Style],h}
+        tbl_.FontSize=12
+        layout[v.Id..' '..i] = tbl_
+        x = x + tbl_.Size[1]
+      end
+    end
+    graphics[groupBoxId_].Size={x+h, y+h}
+  
+  elseif CurrentPage == 'Display list' then
+    local columns_ = {
+      {Title="Name",         Id="Name",        Cell={Style="Text"}},
+      {Title="IP Address",   Id="IPAddress",   Cell={Style="Text",   Color=colors.White}},
+      {Title="MAC Address",  Id="MACAddress",  Cell={Style="Text",   Color=colors.White}},
+      {Title="Status",       Id="Status",      Cell={Style="Text",   IsReadOnly=true,Color=colors.LightGray}},
+      {Title="Power On",     Id="PowerOn",     Cell={Style="Button", Text="ON"}},
+      {Title="Power Off",    Id="PowerOff",    Cell={Style="Button", Text="OFF"}},
+      {Title="Power Toggle", Id="PowerToggle", Cell={Style="Button", Text="TOG"}},
+      {Title="Fb",           Id="PowerFb",     Cell={Style="Led"}},
+    }
+    local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
+    local h = 16
+    local x,y = 0,0
+    table.insert(graphics,{Type="GroupBox",Text="Display controls",Position={x,y},Size={4, 4},FontSize=10,HTextAlign="Left",Fill={242,237,174},StrokeWidth=1,CornerRadius=4})
+    local groupBoxId_ = #graphics
+    x,y = 3, 26 -- anchor
+    x=x+w.Number -- start after the number column
+    for _,v in ipairs(columns_) do
+      local tbl_= {Type="Text",FontSize=11,HTextAlign="Left"}
+      tbl_.Text=v.Title
+      tbl_.Position={x, y}
+      tbl_.Size={w[v.Cell.Style],h}
+      table.insert(graphics,tbl_)
+      x = x + tbl_.Size[1]
+    end
+    for i=1, props['Display Count'].Value do
+      x = 3 -- reset x anchor
+      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+      x=x+w.Number -- start after the number column
+      y=y+h -- new row
+      for _,v in ipairs(columns_) do
+        local tbl_ = {}
+        for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
+        tbl_.PrettyName = "Display "..i.."~"..v.Id
+        tbl_.Position={x,y}
+        tbl_.Size={w[v.Cell.Style],h}
+        tbl_.FontSize=12
+        layout['Display'..v.Id..' '..i] = tbl_
+        x = x + tbl_.Size[1]
+      end
+    end
+    graphics[groupBoxId_].Size={x+h, y+h}
+  
+  elseif CurrentPage == 'Custom list' then
+    local columns_ = {
+      {Title="Power On",     Id="PowerOn",     Cell={Style="Button", Text="ON"}},
+      {Title="Power Off",    Id="PowerOff",    Cell={Style="Button", Text="OFF"}},
+      {Title="Power Toggle", Id="PowerToggle", Cell={Style="Button", Text="TOG"}},
+      {Title="Fb",           Id="PowerFb",     Cell={Style="Led"}}
+    }
+    local x,y = 0,0
+    table.insert(graphics,{Type="GroupBox",Text="Custom controls",Position={x,y},Size={4, 4},FontSize=10,HTextAlign="Left",Fill={242,237,174},StrokeWidth=1,CornerRadius=4})
+    local groupBoxId_ = #graphics
+    
+    local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
+    local h = 16
+    x,y = 3, 26 -- anchor
+    x=x+w.Number -- start after the number column
+    for _,v in ipairs(columns_) do
+      local tbl_= {Type="Text",FontSize=11,HTextAlign="Left"}
+      tbl_.Text=v.Title
+      tbl_.Position={x, y}
+      tbl_.Size={w[v.Cell.Style],h}
+      table.insert(graphics,tbl_)
+      x = x + tbl_.Size[1]
+    end
+    for i=1, props['Display Count'].Value do
+      x = 3 -- reset x anchor
+      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+      x=x+w.Number -- start after the number column
+      y=y+h -- new row
+      for _,v in ipairs(columns_) do
+        local tbl_ = {}
+        for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
+        tbl_.PrettyName = "Custom "..i.."~"..v.Id
+        tbl_.Position={x,y}
+        tbl_.Size={w[v.Cell.Style],h}
+        tbl_.FontSize=12
+  
+        layout['Custom'..v.Id..' '..i] = tbl_
+        x = x + tbl_.Size[1]
+      end
+    end
+    graphics[groupBoxId_].Size={x+h, y+h}
+  
+  end
   return layout, graphics
 end
 
@@ -579,6 +886,7 @@ if Controls then
     local devices = {}
   	local channels = {}
   	local playlists = {}
+  	local schedules = {}
     local playlist_images = {}
   	local displays = {}
     local last_image = {}
@@ -603,6 +911,9 @@ if Controls then
         DebugTx,DebugRx,DebugFunction=true,true,true
         --DebugTx,DebugFunction=true,true,true
       end
+      Controls["DebugFunction"].Boolean = DebugFunction
+      Controls["DebugTx"].Boolean = DebugTx
+      Controls["DebugRx"].Boolean = DebugRx
     end
   	-----------------------------------------------------------------------------------------------------------------------
   	-- Device control functions
@@ -808,6 +1119,13 @@ if Controls then
           Controls['DeviceSelect'][i].String = ''
           Controls['DeviceName'][i].String = ''
           Controls['Platform'][i].String = ''
+          Controls['Type'][i].String = ''
+          Controls['Id'][i].String = ''
+          Controls['Location'][i].String = ''
+          Controls['Room'][i].String = ''
+          Controls['Schedule'][i].String = ''
+          Controls['Online'][i].String = ''
+          Controls['EnableDisplay'][i].String = ''
           Controls['HasDecoder'][i].Boolean = false
           Controls['PlaylistSelect'][i].String = ''
           --Controls['PlaylistSelect'][i].Choices = {}
@@ -817,6 +1135,7 @@ if Controls then
           Controls['PowerOn'][i].Boolean = false
           Controls['PowerOff'][i].Boolean = false
           Controls['PowerToggle'][i].Boolean = false
+          --Controls['ExternalDisplayConnected'][i].Boolean = false
           UpdateLogo('', i)
           UpdateDisplayModule(i, device)
       else
@@ -828,16 +1147,18 @@ if Controls then
         Controls['DeviceSelect'][i].String = device['name']
         Controls['DeviceName'][i].String = device['name']
         Controls['HasDecoder'][i].Boolean = (string.len(device['platform_name']) > 0)
+        Controls['Type'][i].String = device['type'] or ''
+        Controls['Id'][i].String = device['id'] or ''
+        Controls['Location'][i].String = device['location'] or ''
+        Controls['Room'][i].String = device['room'] or ''
+        Controls['Platform'][i].String = device['platform_name'] or ''
         local display_ = UpdateDisplayModule(i, device)
         if string.len(Controls['Details'][i].String) > 0 then
           Controls['Details'][i].String = helper.GetValueStringFromTable(device, Controls['Details'][i].String)
         else
           Controls['Details'][i].String = helper.GetValueStringFromTable(device, "mac: ")
         end
-        if string.len(device['platform_name']) > 0 then
-          Controls['Platform'][i].String = device['platform_name']
-        end
-      
+  
         --CheckContent(device)
         --print('trying to update channel from device')
         local status_ = {}
@@ -845,7 +1166,7 @@ if Controls then
           status_ = GetPowerAndChannel(device)
           if DebugFunction then print('channel: '..status_.channel..', is_tv_playlist: '..tostring(status_.is_tv_playlist)..', power: '..tostring(status_.power)..', playlist: '..tostring(status_.playlist)..', signage: '..tostring(status_.signage)..', jobs_pending: '..tostring(status_.jobs_pending)) end
           Controls['PlaylistSelect'][i].String = status_.playlist
-          if display_==nil then
+          if display_==nil or display_.Status and display_.Status.Value~=0 then
             Controls['PowerOn'][i].Boolean = status_.power
             Controls['PowerOff'][i].Boolean = not status_.power
           end
@@ -917,17 +1238,18 @@ if Controls then
               Controls['CurrentContent'][i].String = status_.channel
               UpdateLogo('', i)
               if DebugFunction then print('Power off: cleared image for '..i) end
-            end 
+            end
           end
           if string.len(status_.channel) > 0 and not status_.jobs_pending then
             if DebugFunction then print('channel not empty') end
             Controls['PowerOnChannel'][i].String = status_.channel
           end
+          Controls['Schedule'][i].String = device.content.schedule or ''
         else 
           if DebugFunction then print("UpdateDevice - Type("..type(device.content)..") doesn't contain any channel or playlist data") end
           UpdateLogo('', i)
           if DebugFunction then print('no data: cleared image for '..i) end
-          if display_==nil then
+          if display_==nil or display_.Status and display_.Status.Value~=0 then
             Controls['PowerOn'][i].Boolean = false
             Controls['PowerOff'][i].Boolean = false
           end
@@ -1037,31 +1359,34 @@ if Controls then
     end
   
     function UpdateDeviceNames(data)  -- data is an array of devices
-      local names_ = {}
+      local names_ = { '' } -- add a blank name to the start so you can clear a device
       local assigned_idx_ = 0
-      for a,b in ipairs(data) do --iterate through devices and create a table of names to update Choices
-        if b['name'] then table.insert(names_, b['name']) end   
-        --[[ -- this is just for debugging
-        if b['name'] then  print('[1].name: ',b['name']) end
-        if b['ip'] then table.insert(uris_, b['ip']) end   
-        if b['mac'] then table.insert(macs_, b['mac']) end
-        for k,v in pairs(b) do
-          if a == 1 then print('['..a..']', k) end --print all keys
-        end --]]
-        -- assign unassigned devices to unassigned controls
-        -- look for the first control that is either empty or contains this device
-        for i=1, #Controls['DeviceSelect'] do
-          if Controls['DeviceSelect'][i].String=="" then AssignDevice(i,data[i]) break --unassigned so assign
-          elseif Controls['DeviceSelect'][i].String==b['name'] then break end -- assigned so stop looking
+      if data then
+        for a,b in ipairs(data) do --iterate through devices and create a table of names to update Choices
+          if b['name'] then table.insert(names_, b['name']) end   
+          --[[ -- this is just for debugging
+          if b['name'] then  print('[1].name: ',b['name']) end
+          if b['ip'] then table.insert(uris_, b['ip']) end   
+          if b['mac'] then table.insert(macs_, b['mac']) end
+          for k,v in pairs(b) do
+            if a == 1 then print('['..a..']', k) end --print all keys
+          end --]]
+          if Controls['AutoPopulate'].Boolean then
+            -- assign unassigned devices to unassigned controls
+            -- look for the first control that is either empty or contains this device
+            for i=1, #Controls['DeviceSelect'] do
+              if Controls['DeviceSelect'][i].String=="" then AssignDevice(i,data[i]) break --unassigned so assign
+              elseif Controls['DeviceSelect'][i].String==b['name'] then break end -- assigned so stop looking
+            end
+          end
         end
       end
-      table.insert(names_, '') -- add a blank name to the end so you can clear a device
       Controls.DeviceNames.Choices = names_
       for i=1, #Controls['DeviceSelect'] do
   		  Controls['DeviceSelect'][i].Choices = Controls.DeviceNames.Choices -- update the device selector choices
       end
     end
-    
+  
     function UpdateDisplayPowerStatus(i)
       local power_ = false
       if displays and displays[i] and displays[i].Status and displays[i].Status.Value==0 then
@@ -1072,6 +1397,7 @@ if Controls then
         elseif displays[i]['PanelStatus'] then
           power_ = displays[i]['PanelStatus'].Boolean
         end
+        Controls['DisplayPowerFb'][i].Boolean = power_
       else -- if no display is online then use the player status
         local _, device_ = GetDeviceData(i)
         if device_ and device_.content then 
@@ -1271,6 +1597,17 @@ if Controls then
               Controls['DisplayStatus'][i].String = ctl.String
             end
           end
+  
+          Controls['DisplayPowerOn'][i].EventHandler = function(ctl) -- power_on
+            if displays[i]['PowerOn']~=nil then displays[i]['PowerOn']:Trigger() end
+            if displays[i]['PanelOn']~=nil then displays[i]['PanelOn']:Trigger() end
+          end
+          Controls['DisplayPowerOff'][i].EventHandler = function(ctl) -- power_on
+            if     displays[i]['PanelOn']~=nil then displays[i]['PanelOff']:Trigger()
+            elseif displays[i]['PowerOn']~=nil then displays[i]['PowerOff']:Trigger()
+            end
+          end
+  
         end
       end
     end
@@ -1307,14 +1644,14 @@ if Controls then
         print('updating devices')
         local changed_ = false
         for k,v in pairs(data) do
-          if devices[k] == nil then
+          if devices[k] == nil then -- populate the next unused location
             devices[k] = v
             changed_ = true
           else
             for k1,v1 in pairs(v) do
               if not (k1 == 'jobs' or k1 == 'content') then -- don't overwrite jobs and content with null
                 if not helper.equals(devices[k][k1], v1, false) then
-                  devices[k][k1] = v1
+                  devices[k][k1] = v1 -- update the data in the device
                   changed_ = true
                 end
               end
@@ -1617,6 +1954,24 @@ if Controls then
       end
     end
   	-----------------------------------------------------------------------------------------------------------------------
+  	-- ParseSchedules
+  	-----------------------------------------------------------------------------------------------------------------------
+    function ParseSchedules(data) -- data is an array of schedules
+  		if DebugFunction then print('schedule data response: '..#data..' schedule found') end
+      if not helper.equals(schedules, data, false) then
+        print('updating schedules')
+        schedules = data
+        local names_ = {}
+        for a,b in ipairs(data) do
+          if b['name'] then
+            print('schedule['..b.id..']: '..b.name)
+          end 
+        end
+      else
+        print('schedules do not need updating: '..#schedules..' schedules exist')
+      end
+    end
+  	-----------------------------------------------------------------------------------------------------------------------
   	-- Parse initial response
   	-----------------------------------------------------------------------------------------------------------------------
   	function QueryDevices()
@@ -1639,11 +1994,17 @@ if Controls then
       GetRequest(Path.."/playlists")
     end
   
+    function QuerySchedules()
+      if DebugFunction then print('QuerySchedules') end
+      GetRequest("api/schedule") -- not documented
+    end
+  
     function QueryAll()
   		if DebugFunction then print('Query all') end
       QueryDevices()
       Timer.CallAfter(QueryChannels, 1) --wait 1 sec to avoid maximum execution
   		Timer.CallAfter(QueryPlaylists, 2) --wait 1 sec to avoid maximum execution 
+  		Timer.CallAfter(QuerySchedules, 3) --wait 1 sec to avoid maximum execution 
   	end
   
     function ParseImage(img, idx)
@@ -1678,6 +2039,8 @@ if Controls then
             ParseChannels(data_)
           elseif data_[1]['orientation']~=nil then  -- playlists
             ParsePlaylists(data_)
+          elseif data_[1]['creator']~=nil then  -- schedules
+            ParseSchedules(data_)
           end
         elseif data_['mac']~=nil then -- response is a table
           ParseDevice(data_)
@@ -1797,6 +2160,7 @@ if Controls then
       load_event_handlers()
    
   		--ClearDevices() -- only do this if you want to reset all the modules
+      UpdateDeviceNames()
       if Controls.IPAddress.String~=nil and string.len(Controls.IPAddress.String)>0 then
         --GetRequest(Path.."/devices")
         QueryAll()
@@ -1835,7 +2199,6 @@ if Controls then
         UpdateDeviceControlDetails(device_) -- update 'Decoder_details'
         GetRequest(Path.."/devices/"..devices[i]['mac'])
       end
-  
     end
   
     Controls.PlaylistNames.EventHandler = function(ctl)
@@ -1861,6 +2224,16 @@ if Controls then
     Controls.QueryPlaylists.EventHandler = QueryPlaylists
     Controls.LoadLogos.EventHandler = load_tv_channel_images
   
+    Controls.AutoPopulate.EventHandler = function(ctl)
+      if ctl.Boolean then
+        last_image = {} -- clear cache soo it forces an update
+        QueryDevices()
+      end
+    end
+  
+    Controls.DebugFunction.EventHandler = function(ctl) DebugFunction = ctl.Boolean end
+    Controls.DebugTx.EventHandler = function(ctl) DebugTx = ctl.Boolean end
+    Controls.DebugRx.EventHandler = function(ctl) DebugRx = ctl.Boolean end
   	-----------------------------------------------------------------------------------------------------------------------
   	-- End of module
   	-----------------------------------------------------------------------------------------------------------------------
