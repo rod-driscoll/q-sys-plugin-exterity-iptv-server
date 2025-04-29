@@ -3,16 +3,17 @@
 
 -- Define the color of the plugin object in the design
 function GetColor(props)
-  return { 102, 102, 102 }
+  return DefaultColor
 end
 
 -- The name that will initially display when dragged into a design
 function GetPrettyName()
-	return "Exterity IPTV Server " .. PluginInfo.Version
+	--return "Exterity IPTV Server " .. PluginInfo.Version
+  return PrettyName
 end
 
 -- Optional function used if plugin has multiple pages
-local PageNames = {"Setup","System","Devices","Decoder list","Display list","Custom list"} --List the pages within the plugin
+--local PageNames = {"Setup","System","Devices","Decoder list","Display list","Custom list"} --List the pages within the plugin
 function GetPages(props)
   local pages = {}
   --[[ #include "pages.lua" ]]

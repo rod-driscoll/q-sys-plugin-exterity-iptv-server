@@ -254,6 +254,8 @@
         Controls['Address'][i].String = ''
         Controls['MACAddress'][i].String = ''       
         Controls['Online'][i].Boolean = false
+        Controls['DeviceStatus'][i].String = ''
+        Controls['DeviceStatus'][i].Value = 5--StatusState.INITIALIZING
         Controls['Details'][i].Choices = {}
         Controls['DeviceSelect'][i].String = ''
         Controls['DeviceName'][i].String = ''
@@ -263,7 +265,6 @@
         Controls['Location'][i].String = ''
         Controls['Room'][i].String = ''
         Controls['Schedule'][i].String = ''
-        Controls['Online'][i].String = ''
         Controls['EnableDisplay'][i].String = ''
         Controls['HasDecoder'][i].Boolean = false
         Controls['PlaylistSelect'][i].String = ''
@@ -282,6 +283,8 @@
       Controls['Address'][i].String = device['ip']
       Controls['MACAddress'][i].String = device['mac']        
       Controls['Online'][i].Boolean = (device['status'] == 'online')
+      Controls['DeviceStatus'][i].String = device['status'] or 'offline'
+      Controls['DeviceStatus'][i].Value = device['status'] == 'online' and 0 or 4 --StatusState.OK or StatusState.MISSING
       Controls['Details'][i].Choices = helper.UpdateItems(device)
       Controls['DeviceSelect'][i].String = device['name']
       Controls['DeviceName'][i].String = device['name']
@@ -305,9 +308,13 @@
         status_ = GetPowerAndChannel(device)
         if DebugFunction then print('channel: '..status_.channel..', is_tv_playlist: '..tostring(status_.is_tv_playlist)..', power: '..tostring(status_.power)..', playlist: '..tostring(status_.playlist)..', signage: '..tostring(status_.signage)..', jobs_pending: '..tostring(status_.jobs_pending)) end
         Controls['PlaylistSelect'][i].String = status_.playlist
+        Controls['PowerFb'    ][i].Boolean = status_.power
+        Controls['PowerToggle'][i].Boolean = status_.power
+        if type(Controls['PowerOn' ][i]~='Trigger') then Controls['PowerOn' ][i].Boolean = status_.power end
+        if type(Controls['PowerOff'][i]~='Trigger') then Controls['PowerOff'][i].Boolean = status_.power end
         if display_==nil or display_.Status and display_.Status.Value~=0 then
-          Controls['PowerOn'][i].Boolean = status_.power
-          Controls['PowerOff'][i].Boolean = not status_.power
+          Controls['CustomPowerFb'    ][i].Boolean = status_.power
+          Controls['CustomPowerToggle'][i].Boolean = status_.power
         end
 
         if status_.power then -- power on
@@ -388,15 +395,18 @@
         if DebugFunction then print("UpdateDevice - Type("..type(device.content)..") doesn't contain any channel or playlist data") end
         UpdateLogo('', i)
         if DebugFunction then print('no data: cleared image for '..i) end
+        Controls['PowerFb'    ][i].Boolean = false
+        Controls['PowerToggle'][i].Boolean = false
+        if type(Controls['PowerOn' ][i]~='Trigger') then Controls['PowerOn' ][i].Boolean = false end
+        if type(Controls['PowerOff'][i]~='Trigger') then Controls['PowerOff'][i].Boolean = false end
         if display_==nil or display_.Status and display_.Status.Value~=0 then
-          Controls['PowerOn'][i].Boolean = false
-          Controls['PowerOff'][i].Boolean = false
+          Controls['CustomPowerFb'    ][i].Boolean = false
+          Controls['CustomPowerToggle'][i].Boolean = false
         end
         Controls['CurrentContent'][i].String = ""
       end
-
     end
-    
+
     function SetDisplayCommand(display, command, value) -- (table, 'Power_On', true) -- data is a single device
       if DebugFunction then print('SetDisplayCommand('..command..','..tostring(value)..')') end
       if display[command] then -- if component control exists
@@ -536,7 +546,8 @@
       elseif displays[i]['PanelStatus'] then
         power_ = displays[i]['PanelStatus'].Boolean
       end
-      Controls['DisplayPowerFb'][i].Boolean = power_
+      Controls['DisplayPowerFb'    ][i].Boolean = power_
+      Controls['DisplayPowerToggle'][i].Boolean = power_
     else -- if no display is online then use the player status
       local _, device_ = GetDeviceData(i)
       if device_ and device_.content then 
@@ -549,10 +560,11 @@
           power_ = true
         end
       end
+      Controls['PowerFb'    ][i].Boolean = power_
+      Controls['PowerToggle'][i].Boolean = power_
     end
-    Controls['PowerToggle'][i].Boolean = power_
-    Controls['PowerOn'][i].Boolean = power_
-    Controls['PowerOff'][i].Boolean = not power_
+    Controls['CustomPowerFb'    ][i].Boolean = power_
+    Controls['CustomPowerToggle'][i].Boolean = power_
   end
 
   local logoQueue = {}

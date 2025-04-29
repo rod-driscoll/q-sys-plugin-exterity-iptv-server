@@ -128,7 +128,7 @@ elseif CurrentPage == 'Decoder list' then
     {Title="Name",            Id="DeviceSelect",   Cell={Style="ComboBox"}},
     {Title="IP Address",      Id="Address",        Cell={Style="Text",       Color=colors.White}},
     {Title="MAC Address",     Id="MACAddress",     Cell={Style="Text",       Color=colors.White}},
-    {Title="Status",          Id="Status",         Cell={Style="Text",       IsReadOnly=true,Color=colors.LightGray}},
+    {Title="Status",          Id="DeviceStatus",   Cell={Style="Status",     IsReadOnly=true,Color=colors.LightGray}},
     {Title="Power On",        Id="PowerOn",        Cell={Style="Button",     Text="ON"}},
     {Title="Power Off",       Id="PowerOff",       Cell={Style="Button",     Text="OFF"}},
     {Title="Power Toggle",    Id="PowerToggle",    Cell={Style="Button",     Text="TOG"}},
@@ -147,7 +147,7 @@ elseif CurrentPage == 'Decoder list' then
     {Title="Schedule",        Id="Schedule",       Cell={Style="Text",       Color=colors.White}},
   }
   local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
-  local h = 16
+  local h = 28
   local x,y = 0,0
   table.insert(graphics,{Type="GroupBox",Text="Decoder controls",Position={x,y},Size={4, 4},FontSize=10,HTextAlign="Left",Fill={242,237,174},StrokeWidth=1,CornerRadius=4})
   local groupBoxId_ = #graphics
@@ -161,10 +161,11 @@ elseif CurrentPage == 'Decoder list' then
     table.insert(graphics,tbl_)
     x = x + tbl_.Size[1]
   end
+  y=y+h -- new row
+  local h = 16
   for i=1, props['Display Count'].Value do
     x = 3 -- reset x anchor
-    y=y+h -- new row
-    table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+    table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,h},FontSize=12,HTextAlign="Center"})
     x=x+w.Number -- start after the number column
     for _,v in ipairs(columns_) do
       local tbl_ = {}
@@ -176,22 +177,23 @@ elseif CurrentPage == 'Decoder list' then
       layout[v.Id..' '..i] = tbl_
       x = x + tbl_.Size[1]
     end
+    y=y+h -- new row
   end
-  graphics[groupBoxId_].Size={x+h, y+h}
+  graphics[groupBoxId_].Size={x+h, y+2*h}
 
 elseif CurrentPage == 'Display list' then
   local columns_ = {
     {Title="Name",         Id="Name",        Cell={Style="Text"}},
     {Title="IP Address",   Id="IPAddress",   Cell={Style="Text",   Color=colors.White}},
     {Title="MAC Address",  Id="MACAddress",  Cell={Style="Text",   Color=colors.White}},
-    {Title="Status",       Id="Status",      Cell={Style="Text",   IsReadOnly=true,Color=colors.LightGray}},
+    {Title="Status",       Id="Status",      Cell={Style="Status", IsReadOnly=true,Color=colors.LightGray}},
     {Title="Power On",     Id="PowerOn",     Cell={Style="Button", Text="ON"}},
     {Title="Power Off",    Id="PowerOff",    Cell={Style="Button", Text="OFF"}},
     {Title="Power Toggle", Id="PowerToggle", Cell={Style="Button", Text="TOG"}},
     {Title="Fb",           Id="PowerFb",     Cell={Style="Led"}},
   }
   local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
-  local h = 16
+  local h = 28
   local x,y = 0,0
   table.insert(graphics,{Type="GroupBox",Text="Display controls",Position={x,y},Size={4, 4},FontSize=10,HTextAlign="Left",Fill={242,237,174},StrokeWidth=1,CornerRadius=4})
   local groupBoxId_ = #graphics
@@ -205,11 +207,12 @@ elseif CurrentPage == 'Display list' then
     table.insert(graphics,tbl_)
     x = x + tbl_.Size[1]
   end
+  y=y+h -- new row
+  local h = 16
   for i=1, props['Display Count'].Value do
     x = 3 -- reset x anchor
-    table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+    table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,h},FontSize=12,HTextAlign="Center"})
     x=x+w.Number -- start after the number column
-    y=y+h -- new row
     for _,v in ipairs(columns_) do
       local tbl_ = {}
       for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
@@ -220,8 +223,9 @@ elseif CurrentPage == 'Display list' then
       layout['Display'..v.Id..' '..i] = tbl_
       x = x + tbl_.Size[1]
     end
+    y=y+h -- new row
   end
-  graphics[groupBoxId_].Size={x+h, y+h}
+  graphics[groupBoxId_].Size={x+h, y+2*h}
 
 elseif CurrentPage == 'Custom list' then
   local columns_ = {
@@ -235,7 +239,7 @@ elseif CurrentPage == 'Custom list' then
   local groupBoxId_ = #graphics
   
   local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
-  local h = 16
+  local h = 28
   x,y = 3, 26 -- anchor
   x=x+w.Number -- start after the number column
   for _,v in ipairs(columns_) do
@@ -246,11 +250,12 @@ elseif CurrentPage == 'Custom list' then
     table.insert(graphics,tbl_)
     x = x + tbl_.Size[1]
   end
+  y=y+h -- new row
+  local h = 16
   for i=1, props['Display Count'].Value do
     x = 3 -- reset x anchor
-    table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+    table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,h},FontSize=12,HTextAlign="Center"})
     x=x+w.Number -- start after the number column
-    y=y+h -- new row
     for _,v in ipairs(columns_) do
       local tbl_ = {}
       for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
@@ -262,7 +267,8 @@ elseif CurrentPage == 'Custom list' then
       layout['Custom'..v.Id..' '..i] = tbl_
       x = x + tbl_.Size[1]
     end
+    y=y+h -- new row
   end
-  graphics[groupBoxId_].Size={x+h, y+h}
+  graphics[groupBoxId_].Size={x+h, y+2*h}
 
 end

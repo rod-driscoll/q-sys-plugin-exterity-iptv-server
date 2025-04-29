@@ -51,21 +51,26 @@ PluginInfo = {
   Id = "exterity-iptv-server.plugin",
   Description = "Plugin controlling Exterity IPTV",
   ShowDebug = true,
-  Author = "Rod Driscoll"
-}
+  Author = "Rod Driscoll",
+} 
+-- the below are items that were part of plugin.lua but moved here so that plugin.lua would never need to be edited
+PrettyName = "Exterity IPTV Server " .. PluginInfo.Version
+PageNames = {"Setup","System","Devices","Decoder list","Display list","Custom list"} --List the pages within the plugin
+DefaultColor = { 102, 102, 102 }
 
 -- Define the color of the plugin object in the design
 function GetColor(props)
-  return { 102, 102, 102 }
+  return DefaultColor
 end
 
 -- The name that will initially display when dragged into a design
 function GetPrettyName()
-	return "Exterity IPTV Server " .. PluginInfo.Version
+	--return "Exterity IPTV Server " .. PluginInfo.Version
+  return PrettyName
 end
 
 -- Optional function used if plugin has multiple pages
-local PageNames = {"Setup","System","Devices","Decoder list","Display list","Custom list"} --List the pages within the plugin
+--local PageNames = {"Setup","System","Devices","Decoder list","Display list","Custom list"} --List the pages within the plugin
 function GetPages(props)
   local pages = {}
   for ix,name in ipairs(PageNames) do
@@ -430,6 +435,14 @@ function GetControls(props)
     Count        = props['Display Count'].Value
   })
   table.insert(ctrls, {
+    Name         = "DeviceStatus",
+    ControlType  = "Indicator",
+    IndicatorType= "Status",
+    PinStyle     = "Output",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
     Name         = "EnableDisplay",
     ControlType  = "Indicator",
     IndicatorType= "Led",
@@ -547,6 +560,14 @@ function GetControls(props)
     Count        = props['Display Count'].Value
   })
   table.insert(ctrls, {
+    Name         = "DisplayPowerToggle",
+    ControlType  = "Button",
+    ButtonType   = "Toggle",
+    PinStyle     = "Both",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
     Name         = "DisplayPowerFb",
     ControlType  = "Indicator",
     IndicatorType= "LED",
@@ -566,6 +587,14 @@ function GetControls(props)
     Name         = "CustomPowerOff",
     ControlType  = "Button",
     ButtonType   = "Trigger",
+    PinStyle     = "Both",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "CustomPowerToggle",
+    ControlType  = "Button",
+    ButtonType   = "Toggle",
     PinStyle     = "Both",
     UserPin      = true,
     Count        = props['Display Count'].Value
@@ -716,7 +745,7 @@ function GetControlLayout(props)
       {Title="Name",            Id="DeviceSelect",   Cell={Style="ComboBox"}},
       {Title="IP Address",      Id="Address",        Cell={Style="Text",       Color=colors.White}},
       {Title="MAC Address",     Id="MACAddress",     Cell={Style="Text",       Color=colors.White}},
-      {Title="Status",          Id="Status",         Cell={Style="Text",       IsReadOnly=true,Color=colors.LightGray}},
+      {Title="Status",          Id="DeviceStatus",   Cell={Style="Status",     IsReadOnly=true,Color=colors.LightGray}},
       {Title="Power On",        Id="PowerOn",        Cell={Style="Button",     Text="ON"}},
       {Title="Power Off",       Id="PowerOff",       Cell={Style="Button",     Text="OFF"}},
       {Title="Power Toggle",    Id="PowerToggle",    Cell={Style="Button",     Text="TOG"}},
@@ -735,7 +764,7 @@ function GetControlLayout(props)
       {Title="Schedule",        Id="Schedule",       Cell={Style="Text",       Color=colors.White}},
     }
     local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
-    local h = 16
+    local h = 28
     local x,y = 0,0
     table.insert(graphics,{Type="GroupBox",Text="Decoder controls",Position={x,y},Size={4, 4},FontSize=10,HTextAlign="Left",Fill={242,237,174},StrokeWidth=1,CornerRadius=4})
     local groupBoxId_ = #graphics
@@ -749,10 +778,11 @@ function GetControlLayout(props)
       table.insert(graphics,tbl_)
       x = x + tbl_.Size[1]
     end
+    y=y+h -- new row
+    local h = 16
     for i=1, props['Display Count'].Value do
       x = 3 -- reset x anchor
-      y=y+h -- new row
-      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,h},FontSize=12,HTextAlign="Center"})
       x=x+w.Number -- start after the number column
       for _,v in ipairs(columns_) do
         local tbl_ = {}
@@ -764,22 +794,23 @@ function GetControlLayout(props)
         layout[v.Id..' '..i] = tbl_
         x = x + tbl_.Size[1]
       end
+      y=y+h -- new row
     end
-    graphics[groupBoxId_].Size={x+h, y+h}
+    graphics[groupBoxId_].Size={x+h, y+2*h}
   
   elseif CurrentPage == 'Display list' then
     local columns_ = {
       {Title="Name",         Id="Name",        Cell={Style="Text"}},
       {Title="IP Address",   Id="IPAddress",   Cell={Style="Text",   Color=colors.White}},
       {Title="MAC Address",  Id="MACAddress",  Cell={Style="Text",   Color=colors.White}},
-      {Title="Status",       Id="Status",      Cell={Style="Text",   IsReadOnly=true,Color=colors.LightGray}},
+      {Title="Status",       Id="Status",      Cell={Style="Status", IsReadOnly=true,Color=colors.LightGray}},
       {Title="Power On",     Id="PowerOn",     Cell={Style="Button", Text="ON"}},
       {Title="Power Off",    Id="PowerOff",    Cell={Style="Button", Text="OFF"}},
       {Title="Power Toggle", Id="PowerToggle", Cell={Style="Button", Text="TOG"}},
       {Title="Fb",           Id="PowerFb",     Cell={Style="Led"}},
     }
     local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
-    local h = 16
+    local h = 28
     local x,y = 0,0
     table.insert(graphics,{Type="GroupBox",Text="Display controls",Position={x,y},Size={4, 4},FontSize=10,HTextAlign="Left",Fill={242,237,174},StrokeWidth=1,CornerRadius=4})
     local groupBoxId_ = #graphics
@@ -793,11 +824,12 @@ function GetControlLayout(props)
       table.insert(graphics,tbl_)
       x = x + tbl_.Size[1]
     end
+    y=y+h -- new row
+    local h = 16
     for i=1, props['Display Count'].Value do
       x = 3 -- reset x anchor
-      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,h},FontSize=12,HTextAlign="Center"})
       x=x+w.Number -- start after the number column
-      y=y+h -- new row
       for _,v in ipairs(columns_) do
         local tbl_ = {}
         for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
@@ -808,8 +840,9 @@ function GetControlLayout(props)
         layout['Display'..v.Id..' '..i] = tbl_
         x = x + tbl_.Size[1]
       end
+      y=y+h -- new row
     end
-    graphics[groupBoxId_].Size={x+h, y+h}
+    graphics[groupBoxId_].Size={x+h, y+2*h}
   
   elseif CurrentPage == 'Custom list' then
     local columns_ = {
@@ -823,7 +856,7 @@ function GetControlLayout(props)
     local groupBoxId_ = #graphics
     
     local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
-    local h = 16
+    local h = 28
     x,y = 3, 26 -- anchor
     x=x+w.Number -- start after the number column
     for _,v in ipairs(columns_) do
@@ -834,11 +867,12 @@ function GetControlLayout(props)
       table.insert(graphics,tbl_)
       x = x + tbl_.Size[1]
     end
+    y=y+h -- new row
+    local h = 16
     for i=1, props['Display Count'].Value do
       x = 3 -- reset x anchor
-      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,h},FontSize=12,HTextAlign="Center"})
       x=x+w.Number -- start after the number column
-      y=y+h -- new row
       for _,v in ipairs(columns_) do
         local tbl_ = {}
         for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
@@ -850,8 +884,9 @@ function GetControlLayout(props)
         layout['Custom'..v.Id..' '..i] = tbl_
         x = x + tbl_.Size[1]
       end
+      y=y+h -- new row
     end
-    graphics[groupBoxId_].Size={x+h, y+h}
+    graphics[groupBoxId_].Size={x+h, y+2*h}
   
   end
   return layout, graphics
@@ -1115,6 +1150,8 @@ if Controls then
           Controls['Address'][i].String = ''
           Controls['MACAddress'][i].String = ''       
           Controls['Online'][i].Boolean = false
+          Controls['DeviceStatus'][i].String = ''
+          Controls['DeviceStatus'][i].Value = 5--StatusState.INITIALIZING
           Controls['Details'][i].Choices = {}
           Controls['DeviceSelect'][i].String = ''
           Controls['DeviceName'][i].String = ''
@@ -1124,7 +1161,6 @@ if Controls then
           Controls['Location'][i].String = ''
           Controls['Room'][i].String = ''
           Controls['Schedule'][i].String = ''
-          Controls['Online'][i].String = ''
           Controls['EnableDisplay'][i].String = ''
           Controls['HasDecoder'][i].Boolean = false
           Controls['PlaylistSelect'][i].String = ''
@@ -1143,6 +1179,8 @@ if Controls then
         Controls['Address'][i].String = device['ip']
         Controls['MACAddress'][i].String = device['mac']        
         Controls['Online'][i].Boolean = (device['status'] == 'online')
+        Controls['DeviceStatus'][i].String = device['status'] or 'offline'
+        Controls['DeviceStatus'][i].Value = device['status'] == 'online' and 0 or 4 --StatusState.OK or StatusState.MISSING
         Controls['Details'][i].Choices = helper.UpdateItems(device)
         Controls['DeviceSelect'][i].String = device['name']
         Controls['DeviceName'][i].String = device['name']
@@ -1166,9 +1204,13 @@ if Controls then
           status_ = GetPowerAndChannel(device)
           if DebugFunction then print('channel: '..status_.channel..', is_tv_playlist: '..tostring(status_.is_tv_playlist)..', power: '..tostring(status_.power)..', playlist: '..tostring(status_.playlist)..', signage: '..tostring(status_.signage)..', jobs_pending: '..tostring(status_.jobs_pending)) end
           Controls['PlaylistSelect'][i].String = status_.playlist
+          Controls['PowerFb'    ][i].Boolean = status_.power
+          Controls['PowerToggle'][i].Boolean = status_.power
+          if type(Controls['PowerOn' ][i]~='Trigger') then Controls['PowerOn' ][i].Boolean = status_.power end
+          if type(Controls['PowerOff'][i]~='Trigger') then Controls['PowerOff'][i].Boolean = status_.power end
           if display_==nil or display_.Status and display_.Status.Value~=0 then
-            Controls['PowerOn'][i].Boolean = status_.power
-            Controls['PowerOff'][i].Boolean = not status_.power
+            Controls['CustomPowerFb'    ][i].Boolean = status_.power
+            Controls['CustomPowerToggle'][i].Boolean = status_.power
           end
   
           if status_.power then -- power on
@@ -1249,15 +1291,18 @@ if Controls then
           if DebugFunction then print("UpdateDevice - Type("..type(device.content)..") doesn't contain any channel or playlist data") end
           UpdateLogo('', i)
           if DebugFunction then print('no data: cleared image for '..i) end
+          Controls['PowerFb'    ][i].Boolean = false
+          Controls['PowerToggle'][i].Boolean = false
+          if type(Controls['PowerOn' ][i]~='Trigger') then Controls['PowerOn' ][i].Boolean = false end
+          if type(Controls['PowerOff'][i]~='Trigger') then Controls['PowerOff'][i].Boolean = false end
           if display_==nil or display_.Status and display_.Status.Value~=0 then
-            Controls['PowerOn'][i].Boolean = false
-            Controls['PowerOff'][i].Boolean = false
+            Controls['CustomPowerFb'    ][i].Boolean = false
+            Controls['CustomPowerToggle'][i].Boolean = false
           end
           Controls['CurrentContent'][i].String = ""
         end
-  
       end
-      
+  
       function SetDisplayCommand(display, command, value) -- (table, 'Power_On', true) -- data is a single device
         if DebugFunction then print('SetDisplayCommand('..command..','..tostring(value)..')') end
         if display[command] then -- if component control exists
@@ -1397,7 +1442,8 @@ if Controls then
         elseif displays[i]['PanelStatus'] then
           power_ = displays[i]['PanelStatus'].Boolean
         end
-        Controls['DisplayPowerFb'][i].Boolean = power_
+        Controls['DisplayPowerFb'    ][i].Boolean = power_
+        Controls['DisplayPowerToggle'][i].Boolean = power_
       else -- if no display is online then use the player status
         local _, device_ = GetDeviceData(i)
         if device_ and device_.content then 
@@ -1410,10 +1456,11 @@ if Controls then
             power_ = true
           end
         end
+        Controls['PowerFb'    ][i].Boolean = power_
+        Controls['PowerToggle'][i].Boolean = power_
       end
-      Controls['PowerToggle'][i].Boolean = power_
-      Controls['PowerOn'][i].Boolean = power_
-      Controls['PowerOff'][i].Boolean = not power_
+      Controls['CustomPowerFb'    ][i].Boolean = power_
+      Controls['CustomPowerToggle'][i].Boolean = power_
     end
   
     local logoQueue = {}

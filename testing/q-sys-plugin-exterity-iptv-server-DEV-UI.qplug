@@ -10,20 +10,24 @@ PluginInfo = {
   Description = "Plugin controlling Exterity IPTV-DEV-UI",
   ShowDebug = true,
   Author = "Rod Driscoll"
-}
+} -- the below are items that were part of plugin.lua but moved here so that plugin.lua would never need to be edited
+PrettyName =  "Exterity IPTV Server " .. PluginInfo.Version
+PageNames = {"Setup","System","Devices","Decoder list","Display list","Custom list"} --List the pages within the plugin
+DefaultColor = { 102, 102, 102 }
 
 -- Define the color of the plugin object in the design
 function GetColor(props)
-  return { 102, 102, 102 }
+  return DefaultColor
 end
 
 -- The name that will initially display when dragged into a design
 function GetPrettyName()
-	return "Exterity IPTV Server " .. PluginInfo.Version
+	--return "Exterity IPTV Server " .. PluginInfo.Version
+  return PrettyName
 end
 
 -- Optional function used if plugin has multiple pages
-local PageNames = {"Setup","System","Devices","Decoder list","Display list","Custom list"} --List the pages within the plugin
+--local PageNames = {"Setup","System","Devices","Decoder list","Display list","Custom list"} --List the pages within the plugin
 function GetPages(props)
   local pages = {}
   for ix,name in ipairs(PageNames) do
@@ -388,6 +392,14 @@ function GetControls(props)
     Count        = props['Display Count'].Value
   })
   table.insert(ctrls, {
+    Name         = "DeviceStatus",
+    ControlType  = "Indicator",
+    IndicatorType= "Status",
+    PinStyle     = "Output",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
     Name         = "EnableDisplay",
     ControlType  = "Indicator",
     IndicatorType= "Led",
@@ -505,6 +517,14 @@ function GetControls(props)
     Count        = props['Display Count'].Value
   })
   table.insert(ctrls, {
+    Name         = "DisplayPowerToggle",
+    ControlType  = "Button",
+    ButtonType   = "Toggle",
+    PinStyle     = "Both",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
     Name         = "DisplayPowerFb",
     ControlType  = "Indicator",
     IndicatorType= "LED",
@@ -524,6 +544,14 @@ function GetControls(props)
     Name         = "CustomPowerOff",
     ControlType  = "Button",
     ButtonType   = "Trigger",
+    PinStyle     = "Both",
+    UserPin      = true,
+    Count        = props['Display Count'].Value
+  })
+  table.insert(ctrls, {
+    Name         = "CustomPowerToggle",
+    ControlType  = "Button",
+    ButtonType   = "Toggle",
     PinStyle     = "Both",
     UserPin      = true,
     Count        = props['Display Count'].Value
@@ -674,7 +702,7 @@ function GetControlLayout(props)
       {Title="Name",            Id="DeviceSelect",   Cell={Style="ComboBox"}},
       {Title="IP Address",      Id="Address",        Cell={Style="Text",       Color=colors.White}},
       {Title="MAC Address",     Id="MACAddress",     Cell={Style="Text",       Color=colors.White}},
-      {Title="Status",          Id="Status",         Cell={Style="Text",       IsReadOnly=true,Color=colors.LightGray}},
+      {Title="Status",          Id="DeviceStatus",   Cell={Style="Status",     IsReadOnly=true,Color=colors.LightGray}},
       {Title="Power On",        Id="PowerOn",        Cell={Style="Button",     Text="ON"}},
       {Title="Power Off",       Id="PowerOff",       Cell={Style="Button",     Text="OFF"}},
       {Title="Power Toggle",    Id="PowerToggle",    Cell={Style="Button",     Text="TOG"}},
@@ -693,7 +721,7 @@ function GetControlLayout(props)
       {Title="Schedule",        Id="Schedule",       Cell={Style="Text",       Color=colors.White}},
     }
     local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
-    local h = 16
+    local h = 28
     local x,y = 0,0
     table.insert(graphics,{Type="GroupBox",Text="Decoder controls",Position={x,y},Size={4, 4},FontSize=10,HTextAlign="Left",Fill={242,237,174},StrokeWidth=1,CornerRadius=4})
     local groupBoxId_ = #graphics
@@ -707,11 +735,12 @@ function GetControlLayout(props)
       table.insert(graphics,tbl_)
       x = x + tbl_.Size[1]
     end
+    y=y+h -- new row
+    local h = 16
     for i=1, props['Display Count'].Value do
       x = 3 -- reset x anchor
-      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,h},FontSize=12,HTextAlign="Center"})
       x=x+w.Number -- start after the number column
-      y=y+h -- new row
       for _,v in ipairs(columns_) do
         local tbl_ = {}
         for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
@@ -722,22 +751,23 @@ function GetControlLayout(props)
         layout[v.Id..' '..i] = tbl_
         x = x + tbl_.Size[1]
       end
+      y=y+h -- new row
     end
-    graphics[groupBoxId_].Size={x+h, y+h}
+    graphics[groupBoxId_].Size={x+h, y+2*h}
   
   elseif CurrentPage == 'Display list' then
     local columns_ = {
       {Title="Name",         Id="Name",        Cell={Style="Text"}},
       {Title="IP Address",   Id="IPAddress",   Cell={Style="Text",   Color=colors.White}},
       {Title="MAC Address",  Id="MACAddress",  Cell={Style="Text",   Color=colors.White}},
-      {Title="Status",       Id="Status",      Cell={Style="Text",   IsReadOnly=true,Color=colors.LightGray}},
+      {Title="Status",       Id="Status",      Cell={Style="Status", IsReadOnly=true,Color=colors.LightGray}},
       {Title="Power On",     Id="PowerOn",     Cell={Style="Button", Text="ON"}},
       {Title="Power Off",    Id="PowerOff",    Cell={Style="Button", Text="OFF"}},
       {Title="Power Toggle", Id="PowerToggle", Cell={Style="Button", Text="TOG"}},
       {Title="Fb",           Id="PowerFb",     Cell={Style="Led"}},
     }
     local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
-    local h = 16
+    local h = 28
     local x,y = 0,0
     table.insert(graphics,{Type="GroupBox",Text="Display controls",Position={x,y},Size={4, 4},FontSize=10,HTextAlign="Left",Fill={242,237,174},StrokeWidth=1,CornerRadius=4})
     local groupBoxId_ = #graphics
@@ -751,11 +781,12 @@ function GetControlLayout(props)
       table.insert(graphics,tbl_)
       x = x + tbl_.Size[1]
     end
+    y=y+h -- new row
+    local h = 16
     for i=1, props['Display Count'].Value do
       x = 3 -- reset x anchor
-      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,h},FontSize=12,HTextAlign="Center"})
       x=x+w.Number -- start after the number column
-      y=y+h -- new row
       for _,v in ipairs(columns_) do
         local tbl_ = {}
         for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
@@ -763,12 +794,12 @@ function GetControlLayout(props)
         tbl_.Position={x,y}
         tbl_.Size={w[v.Cell.Style],h}
         tbl_.FontSize=12
-  
         layout['Display'..v.Id..' '..i] = tbl_
         x = x + tbl_.Size[1]
       end
+      y=y+h -- new row
     end
-    graphics[groupBoxId_].Size={x+h, y+h}
+    graphics[groupBoxId_].Size={x+h, y+2*h}
   
   elseif CurrentPage == 'Custom list' then
     local columns_ = {
@@ -782,7 +813,7 @@ function GetControlLayout(props)
     local groupBoxId_ = #graphics
     
     local w = { Number  = 36, Text = 102, ComboBox = 102, Status  = 128, Button = 51, Led = 16 }
-    local h = 16
+    local h = 28
     x,y = 3, 26 -- anchor
     x=x+w.Number -- start after the number column
     for _,v in ipairs(columns_) do
@@ -793,11 +824,12 @@ function GetControlLayout(props)
       table.insert(graphics,tbl_)
       x = x + tbl_.Size[1]
     end
+    y=y+h -- new row
+    local h = 16
     for i=1, props['Display Count'].Value do
       x = 3 -- reset x anchor
-      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,y},FontSize=12,HTextAlign="Center"})
+      table.insert(graphics,{Type="Text",Text=tostring(i),Position={x,y},Size={w.Number,h},FontSize=12,HTextAlign="Center"})
       x=x+w.Number -- start after the number column
-      y=y+h -- new row
       for _,v in ipairs(columns_) do
         local tbl_ = {}
         for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
@@ -809,8 +841,9 @@ function GetControlLayout(props)
         layout['Custom'..v.Id..' '..i] = tbl_
         x = x + tbl_.Size[1]
       end
+      y=y+h -- new row
     end
-    graphics[groupBoxId_].Size={x+h, y+h}
+    graphics[groupBoxId_].Size={x+h, y+2*h}
   
   end
   return layout, graphics

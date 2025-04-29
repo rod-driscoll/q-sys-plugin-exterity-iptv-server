@@ -67,6 +67,10 @@ The files in "./testing/" are for dev only and may not be the most current code,
 
 ### Features not tested
 
+### Features of note
+
+The 'Custom controls' on the custom tab are power controls that will power a connected display if there is one connected, otherwise power the decoder. We really don't want to power the decoders off if we don't have to because they don't reliably load playlists or return to the previous content.
+
 ## References
 
 Protocol can be found on any deployed Exterity server at <http://server-ip/docs>

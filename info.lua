@@ -50,5 +50,9 @@ PluginInfo = {
   Id = "exterity-iptv-server.plugin",
   Description = "Plugin controlling Exterity IPTV",
   ShowDebug = true,
-  Author = "Rod Driscoll"
-}
+  Author = "Rod Driscoll",
+} 
+-- the below are items that were part of plugin.lua but moved here so that plugin.lua would never need to be edited
+PrettyName = "Exterity IPTV Server " .. PluginInfo.Version
+PageNames = {"Setup","System","Devices","Decoder list","Display list","Custom list"} --List the pages within the plugin
+DefaultColor = { 102, 102, 102 }
