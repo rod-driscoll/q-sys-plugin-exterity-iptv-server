@@ -475,17 +475,19 @@
     
     if not found_ then -- this is a new device, put it into the next empty component
       if DebugFunction then print('NEW DEVICE ['..i..'] '..devices[i].name..' id: '..devices[i].id) end--found the device, now find all matches
-      found_ = false
-      for j=1, #Controls['DeviceSelect'] do --iterate through all devics in data
-        if not found_ then -- go until an empty one is found
-          if string.len(Controls['DeviceSelect'][j].String) < 1 then -- an unassigned component
-            AssignDevice(j, devices[i])
-            found_ = true -- stop looking for more unassigned components
+      if Controls['AutoPopulate'].Boolean then
+        found_ = false
+        for j=1, #Controls['DeviceSelect'] do --iterate through all devics in data
+          if not found_ then -- go until an empty one is found
+            if string.len(Controls['DeviceSelect'][j].String) < 1 then -- an unassigned component
+              AssignDevice(j, devices[i])
+              found_ = true -- stop looking for more unassigned components
+            end
           end
         end
-      end
-      if not found_ then
-        if DebugFunction then print('NOT ASSIGNED ['..i..'] '..devices[i].name..' id: '..devices[i].id) end
+        if not found_ then
+          if DebugFunction then print('NOT ASSIGNED ['..i..'] '..devices[i].name..' id: '..devices[i].id) end
+        end
       end
     end
   end
@@ -724,6 +726,20 @@
           displays[i]['IPAddress'].EventHandler = function(ctl) 
             print('Display IPAddress ['..i..']: '..tostring(ctl.String))
             Controls['DisplayIPAddress'][i].String = ctl.String
+          end
+        end
+        if displays[i]['MACAddress']~=nil then
+          Controls['DisplayMACAddress'][i].String = displays[i]['MACAddress'].String
+          displays[i]['MACAddress'].EventHandler = function(ctl) 
+            print('Display MACAddress ['..i..']: '..tostring(ctl.String))
+            Controls['DisplayMACAddress'][i].String = ctl.String
+          end
+        end
+        if displays[i]['DeviceName']~=nil then
+          Controls['DisplayName'][i].String = displays[i]['DeviceName'].String
+          displays[i]['DeviceName'].EventHandler = function(ctl) 
+            print('Display DeviceName ['..i..']: '..tostring(ctl.String))
+            Controls['DisplayName'][i].String = ctl.String
           end
         end
         if displays[i]['PanelStatus']~=nil then
