@@ -96,7 +96,7 @@
           elseif type(device.content.standby) == "boolean" then
             return_.power = not device.content.standby
           elseif device.content.standby==nil then 
-            print('standby is nil')
+            if DebugFunction then print('standby is nil') end
             if device['type']~=nil and device['type']=='Receiver' then 
               return_.power = true -- can't turn receiveres off
             end
@@ -117,7 +117,7 @@
               if device.jobs[i].status == "PENDING" then return_.jobs_pending = true end
               if device.jobs[i].status == "SUCCESS" and (not found_successful_job_) and device.jobs[i].params~=nil then
                 local params_ = rapidjson.decode(device.jobs[i].params)
-                print('successful job['..i..'], params type.'..type(params_))
+                if DebugFunction then print('successful job['..i..'], params type.'..type(params_)) end
                 if type(params_) == "table" then
                   --if params_.channel.name then print('channel: '..params_.channel.name) end
                   --if params_ and params_.channel and type(params_.channel) .name then 
@@ -161,7 +161,7 @@
     if display_ then -- a display module with the command is connected to the display so use it for power
       if command=='Display_off' then 
         UpdateLogo('', i)    
-        if DebugFunction then print('SetDevicePower: cleared image for '..i) end
+        if DebugDisplays then print('SetDevicePower: cleared image for '..i) end
         if display_['PanelOff']~=nil then 
           command_ = 'PanelOff'
         elseif display_['PowerOff']~=nil then 
@@ -180,10 +180,10 @@
     end
     if command_ then                                  -- send power to the connected display module
       if command2_ then
-        print('sending '..command2_..' to display component, type:', device['type'])
+        if DebugDisplays then print('sending '..command2_..' to display component, type:', device['type']) end
         SetDisplayCommand(display_, command2_, true)
       end
-      print('sending '..command_..' to display component, type:', device['type'])
+      if DebugDisplays then print('sending '..command_..' to display component, type:', device['type']) end
       SetDisplayCommand(display_, command_, true)
     end
     if command=='Display_on' or not display_ or (display_.Status and display_.Status.Value ~= 0) then --device.type=='UHD Decoder'  then  --**only send power to the decoder if there's no connected display attached**
@@ -194,58 +194,40 @@
   end
 
 	function UpdateDisplayModule(i, device) -- device is a single device
-    local display_ = nil
-    if device~=nil then
-      display_ = (device['platform_name'] == nil or (string.len(device['platform_name']) < 1)) and displays[i] -- if there is no platform name then there is no display
-    end
-    print('UpdateDisplayModule('..i..') component '..(display_==nil and 'is nil' or type(display_)))
-    Controls['EnableDisplay'][i].Boolean = display_ ~= nil
+    if DebugDisplays then print('UpdateDisplayModule('..i..') component '..(displays[i]==nil and 'is nil' or (type(displays[i])..' has '..#Component.GetControls(displays[i])..' controls'))) end
+    Controls['EnableDisplay'][i].Boolean = displays[i] ~= nil
 		--Controls['DisplayIPAddress'][i].String = display_ ~= nil and device['ip'] or ''
-		Controls['DisplayIPAddress'][i].IsInvisible = display_ == nil
+		--Controls['DisplayIPAddress'][i].IsInvisible = display_ == nil
 		--Controls['DisplayStatus'][i].IsInvisible = display_ == nil
 
-    if display_ and type(display_)~="boolean" then
-      print("display["..i.."] module exists - updating controls")
-      if display_['IPAddress'] then         
-        display_['IPAddress'].String = device['ip']
-        Controls['DisplayIPAddress'][i].String = display_['IPAddress'].String
-      end
-      -- power
-      local power_status_ = false
-      if display_['PanelStatus'] then 
-        if display_['PowerStatus'] then 
-          power_ = display_['PanelStatus'].Boolean and display_['PowerStatus'].Boolean 
+    if displays[i] and type(displays[i])~="boolean" then
+      if DebugDisplays then print("display["..i.."] module exists - updating controls") end
+      if displays[i]['IPAddress'] then
+        if (device['platform_name'] == nil or device['platform_name']=='') and device['type']=='sssfp5Lfd' then
+          displays[i]['IPAddress'].String = device['ip'] -- system on chip (an app running on the display), update the display module ip address
         else
-          power_ = display_['PanelStatus'].Boolean
+          if displays[i]['IPAddress'].String and displays[i]['IPAddress'].String ~= '' then
+            device['ip'] = displays[i]['IPAddress'].String -- update the address from the display module
+          end
         end
-      elseif display_['PowerStatus'] then
-        power_ = display_['PowerStatus'].Boolean
+        Controls['DisplayIPAddress'][i].String = displays[i]['IPAddress'].String
       end
-      if display_['PowerStatus'] then 
-        if not display_['PanelStatus'] then 
-          --display_['PowerStatus'].EventHandler = function(ctl) 
-          --  print('Display PowerStatus ['..i..']: '..tostring(ctl.Boolean))
-          --end
-        end
-      end
-      Controls['PowerToggle'][i].Boolean = power_
-      Controls['PowerOn'    ][i].Boolean = power_
-      Controls['PowerOff'   ][i].Boolean = not power_
       -- connection
-      if display_['Status'] then 
-        Controls['DisplayStatus'][i].Value = display_['Status'].Value
-        Controls['DisplayStatus'][i].String = display_['Status'].String
+      if displays[i]['Status'] then 
+        Controls['DisplayStatus'][i].Value = displays[i]['Status'].Value
+        Controls['DisplayStatus'][i].String = displays[i]['Status'].String
+      UpdateDisplayPowerStatus(i)
       end
     else 
-      print("display["..i.."] module doesn't exist - updating controls")
-      Controls['DisplayIPAddress'][i].IsInvisible = true
+      if DebugDisplays then print("display["..i.."] module doesn't exist - updating controls") end
+      --Controls['DisplayIPAddress'][i].IsInvisible = true
       Controls['DisplayIPAddress'][i].String = ''
       --Controls['DisplayStatus'][i].IsInvisible = true
       Controls['DisplayStatus'][i].Value = 3 -- 3: not present
       Controls['DisplayStatus'][i].String = 'No display connected'
       --display_['IPAddress'].String = ''
     end
-    return display_
+    return displays[i]
   end 
 
 	function UpdateDevice(i, device) -- device is a single device
@@ -312,7 +294,7 @@
         Controls['PowerToggle'][i].Boolean = status_.power
         if type(Controls['PowerOn' ][i]~='Trigger') then Controls['PowerOn' ][i].Boolean = status_.power end
         if type(Controls['PowerOff'][i]~='Trigger') then Controls['PowerOff'][i].Boolean = status_.power end
-        if display_==nil or display_.Status and display_.Status.Value~=0 then
+        if display_==nil or type(display_)=="boolean" or (display_.Status and display_.Status.Value~=0) then
           Controls['CustomPowerFb'    ][i].Boolean = status_.power
           Controls['CustomPowerToggle'][i].Boolean = status_.power
         end
@@ -399,7 +381,7 @@
         Controls['PowerToggle'][i].Boolean = false
         if type(Controls['PowerOn' ][i]~='Trigger') then Controls['PowerOn' ][i].Boolean = false end
         if type(Controls['PowerOff'][i]~='Trigger') then Controls['PowerOff'][i].Boolean = false end
-        if display_==nil or display_.Status and display_.Status.Value~=0 then
+        if display_==nil or type(display_)=="boolean" or (display_.Status and display_.Status.Value~=0) then
           Controls['CustomPowerFb'    ][i].Boolean = false
           Controls['CustomPowerToggle'][i].Boolean = false
         end
@@ -540,16 +522,22 @@
 
   function UpdateDisplayPowerStatus(i)
     local power_ = false
+    local powerOff_ = false
     if displays and displays[i] and displays[i].Status and displays[i].Status.Value==0 then
       if displays[i]['PowerStatus'] and displays[i]['PanelStatus'] then
-        power_ = displays[i]['PowerStatus'].Boolean and displays[i]['PanelStatus'].Boolean
+        power_    =     displays[i]['PowerStatus'].Boolean and     displays[i]['PanelStatus'].Boolean
+        powerOff_ = not displays[i]['PowerStatus'].Boolean and not displays[i]['PanelStatus'].Boolean
       elseif displays[i]['PowerStatus'] then
-        power_ = displays[i]['PowerStatus'].Boolean
+        power_    =     displays[i]['PowerStatus'].Boolean
+        powerOff_ = not displays[i]['PowerStatus'].Boolean
       elseif displays[i]['PanelStatus'] then
-        power_ = displays[i]['PanelStatus'].Boolean
+        power_    =     displays[i]['PanelStatus'].Boolean
+        powerOff_ = not displays[i]['PanelStatus'].Boolean
       end
       Controls['DisplayPowerFb'    ][i].Boolean = power_
       Controls['DisplayPowerToggle'][i].Boolean = power_
+      Controls['DisplayPowerOn'    ][i].Boolean = power_
+      Controls['DisplayPowerOff'   ][i].Boolean = powerOff_
     else -- if no display is online then use the player status
       local _, device_ = GetDeviceData(i)
       if device_ and device_.content then 
@@ -564,9 +552,13 @@
       end
       Controls['PowerFb'    ][i].Boolean = power_
       Controls['PowerToggle'][i].Boolean = power_
+      Controls['PowerOn'    ][i].Boolean = power_
+      Controls['PowerOff'   ][i].Boolean = not power_
     end
     Controls['CustomPowerFb'    ][i].Boolean = power_
     Controls['CustomPowerToggle'][i].Boolean = power_
+    Controls['CustomPowerOn'    ][i].Boolean = power_
+    Controls['CustomPowerOff'   ][i].Boolean = not power_
   end
 
   local logoQueue = {}
@@ -671,7 +663,7 @@
     for i=1, Properties['Display Count'].Value do
 
       Controls['DeviceSelect'][i].EventHandler = function(ctl) -- device select
-        print('device selected',  ctl.String) -- e.g. 'Bar 1', we don't know what module it came from       
+        if DebugFunction then print('device selected',  ctl.String) end -- e.g. 'Bar 1', we don't know what module it came from       
         local j, device_ = GetDeviceData(i)
         AssignDevice(i, devices[j])
       end
@@ -713,7 +705,7 @@
       end  
 
       displays[i] = Component.New(Properties['Display Code Name Prefix'].Value..i) -- eg "Display_1"
-      if DebugFunction then 
+      if DebugDisplays then 
         print(Properties['Display Code Name Prefix'].Value..i..' has '..#Component.GetControls(displays[i])..' controls')
       end
       if displays[i] then
@@ -724,34 +716,34 @@
         if displays[i]['IPAddress']~=nil then
           Controls['DisplayIPAddress'][i].String = displays[i]['IPAddress'].String
           displays[i]['IPAddress'].EventHandler = function(ctl) 
-            print('Display IPAddress ['..i..']: '..tostring(ctl.String))
+            if DebugDisplays then print('Display IPAddress ['..i..']: '..tostring(ctl.String)) end
             Controls['DisplayIPAddress'][i].String = ctl.String
           end
         end
         if displays[i]['MACAddress']~=nil then
           Controls['DisplayMACAddress'][i].String = displays[i]['MACAddress'].String
           displays[i]['MACAddress'].EventHandler = function(ctl) 
-            print('Display MACAddress ['..i..']: '..tostring(ctl.String))
+            if DebugDisplays then print('Display MACAddress ['..i..']: '..tostring(ctl.String)) end
             Controls['DisplayMACAddress'][i].String = ctl.String
           end
         end
         if displays[i]['DeviceName']~=nil then
           Controls['DisplayName'][i].String = displays[i]['DeviceName'].String
           displays[i]['DeviceName'].EventHandler = function(ctl) 
-            print('Display DeviceName ['..i..']: '..tostring(ctl.String))
+            if DebugDisplays then print('Display DeviceName ['..i..']: '..tostring(ctl.String)) end
             Controls['DisplayName'][i].String = ctl.String
           end
         end
         if displays[i]['PanelStatus']~=nil then
           displays[i]['PanelStatus'].EventHandler = function(ctl) 
-            print('Display PanelOnStatus ['..i..']: '..tostring(ctl.Boolean))
+            if DebugDisplays then print('Display PanelOnStatus ['..i..']: '..tostring(ctl.Boolean)) end
             UpdateDisplayPowerStatus(i)
           end
         end
+        UpdateDisplayPowerStatus(i)
         if displays[i]['PowerStatus']~=nil then
-          UpdateDisplayPowerStatus(i)
           displays[i]['PowerStatus'].EventHandler = function(ctl) 
-            print('Display PowerStatus ['..i..']: '..tostring(ctl.Boolean))
+            if DebugDisplays then print('Display PowerStatus ['..i..']: '..tostring(ctl.Boolean)) end
             UpdateDisplayPowerStatus(i)
           end
         end
@@ -759,7 +751,7 @@
           Controls['DisplayStatus'][i].Value  = displays[i]['Status'].Value
           Controls['DisplayStatus'][i].String = displays[i]['Status'].String
           displays[i]['Status'].EventHandler = function(ctl) 
-            print('Display ConnectionStatus ['..i..']: '..ctl.String)
+            if DebugDisplays and DebugFunction then print('Display ConnectionStatus ['..i..']: '..ctl.String) end
             Controls['DisplayStatus'][i].Value = ctl.Value
             Controls['DisplayStatus'][i].String = ctl.String
           end
@@ -793,7 +785,7 @@
           --CheckContent(devices[i]) -- this works
           UpdateDeviceData(i)
         else
-          print('data in device ['..i..']: '.. devices[i]['name']..'does not need updating')
+          if DebugFunction then print('data in device ['..i..']: '.. devices[i]['name']..'does not need updating') end
         end
 				found_ = true
 			end
@@ -808,7 +800,7 @@
 	function ParseDevices(data)  -- data is an array of devices
 		if DebugFunction then print('ParseDevices', #data.. ' devices found') end
     if not helper.equals(devices, data, false) then
-      print('updating devices')
+      if DebugFunction then print('updating devices') end
       local changed_ = false
       for k,v in pairs(data) do
         if devices[k] == nil then -- populate the next unused location
@@ -833,7 +825,7 @@
           UpdateDeviceData(i)
         end ]]
     else
-      print('devices do not need updating: '..#devices..' devices exist')
+      if DebugFunction then print('devices do not need updating: '..#devices..' devices exist') end
     end
   end
 	-----------------------------------------------------------------------------------------------------------------------
@@ -866,7 +858,7 @@
       file:write(json_string)
       file:close()
     else
-      print('ERROR: write config file path: '..path)
+      if DebugFunction then print('ERROR: write config file path: '..path) end
     end
   end
 
@@ -888,7 +880,7 @@
       file:write(data)
       file:close()
     else
-      print('ERROR: save_logo_to_file path: '..logos_filepath..name)
+      if DebugFunction then print('ERROR: save_logo_to_file path: '..logos_filepath..name) end
     end
   end
 
@@ -955,7 +947,7 @@
         if DebugFunction then print('get_tv_channel_image: '..tv_channel_logos[name_].file) end
         file_ = io.open(logos_filepath..tv_channel_logos[name_].file, "rb")   
         if file_==nil then
-          print('logo file not found on device')           
+          if DebugFunction then print('logo file not found on device') end
         else -- file exists
           local data_ = file_:read("*a")
           if data_ and #data_ then
@@ -963,7 +955,7 @@
             if DebugFunction then print('1-get_tv_channel_image: UpdateLogo for '..name_..', '..tv_channel_logos[name_].file..' - len: '..#data_) end
             io.close(file_)
           else 
-            print('logo file empty')
+            if DebugFunction then print('logo file empty') end
             io.close(file_)
             file_ = nil
           end
@@ -987,11 +979,11 @@
         if DebugFunction then
           local i = 0
           for _ in pairs(config) do i=i+1 end 
-          print("config loaded size: "..i..", type: "..type(config))
+          if DebugFunction then print("config loaded size: "..i..", type: "..type(config)) end
         end --helper.TablePrint(config)
         --print("nightlife url: "..config.Nightlife.url)
       else
-        print("config file not loaded: "..path)
+        if DebugFunction then print("config file not loaded: "..path) end
       end
       return config
     else 
@@ -1011,7 +1003,7 @@
 		if DebugFunction then print('channel data response: '..#data..' channels found') end	
     if not helper.equals(channels, data, false)
         or (Controls["ChannelSelect"][1]~=nil and #Controls["ChannelSelect"][1].Choices==0) then
-      print('updating channels')
+      if DebugFunction then print('updating channels') end
       channels = data
       local names_ = {}
       for a,b in ipairs(data) do
@@ -1031,7 +1023,7 @@
         end
       end
     else
-      print('channels do not need updating: '..#channels..' channels exist')
+      if DebugFunction then print('channels do not need updating: '..#channels..' channels exist') end
     end
   end
 
@@ -1056,7 +1048,7 @@
 	function ParsePlaylists(data) -- data is an array of playlists
 		if DebugFunction then print('playlist data response: '..#data..' playlists found') end
     if not helper.equals(playlists, data, false) then
-      print('updating playlists')
+      if DebugFunction then print('updating playlists') end
       playlists = data
       local names_ = {}
       for a,b in ipairs(data) do
@@ -1074,7 +1066,7 @@
         end
       end
     else
-      print('playlists do not need updating: '..#playlists..' playlists exist')
+      if DebugFunction then print('playlists do not need updating: '..#playlists..' playlists exist') end
     end
   end
 
@@ -1126,16 +1118,16 @@
   function ParseSchedules(data) -- data is an array of schedules
 		if DebugFunction then print('schedule data response: '..#data..' schedule found') end
     if not helper.equals(schedules, data, false) then
-      print('updating schedules')
+      if DebugFunction then print('updating schedules') end
       schedules = data
       local names_ = {}
       for a,b in ipairs(data) do
         if b['name'] then
-          print('schedule['..b.id..']: '..b.name)
+          if DebugFunction then print('schedule['..b.id..']: '..b.name) end
         end 
       end
     else
-      print('schedules do not need updating: '..#schedules..' schedules exist')
+      if DebugFunction then print('schedules do not need updating: '..#schedules..' schedules exist') end
     end
   end
 	-----------------------------------------------------------------------------------------------------------------------
@@ -1177,7 +1169,7 @@
   function ParseImage(img, idx)
     if DebugFunction then 
       if idx~=nil then 
-        print('ParseImage('..idx..')')
+        if DebugFunction then print('ParseImage('..idx..')') end
         playlist_images[idx] = img
       else
         UpdateLogo(img, Controls.PlaylistLogo)
@@ -1337,7 +1329,7 @@
         --if Device.IsEmulating then QueryTimer:Start(10) end
         QueryTimer:Start(Properties["Poll Interval"].Value)
       else
-        print("Query timer is already running")
+        if DebugFunction then print("Query timer is already running") end
       end
 		else
 			print("I can't do anything without a Server address!")
@@ -1401,6 +1393,7 @@
   Controls.DebugFunction.EventHandler = function(ctl) DebugFunction = ctl.Boolean end
   Controls.DebugTx.EventHandler = function(ctl) DebugTx = ctl.Boolean end
   Controls.DebugRx.EventHandler = function(ctl) DebugRx = ctl.Boolean end
+  Controls.DebugDisplays.EventHandler = function(ctl) DebugDisplays = ctl.Boolean end
 	-----------------------------------------------------------------------------------------------------------------------
 	-- End of module
 	-----------------------------------------------------------------------------------------------------------------------

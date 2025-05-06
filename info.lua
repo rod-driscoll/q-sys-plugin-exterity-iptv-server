@@ -43,6 +43,9 @@
   -- update: Added Debug toggles
   -- update: Added extra info to players such as schelules, room, id, location
   -- update: Added layout pages for different views of the controls
+  -- update: Surrounded most debug lines with "if DebugFunction" to reduce debug noise
+  -- update: Added DebugDisplays
+  -- update: if the device type is a system on chip (app on the display) then send the IP address from the Vitec to the module, else use the module address
 
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane

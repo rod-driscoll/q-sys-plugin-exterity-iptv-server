@@ -174,6 +174,14 @@ table.insert(ctrls, {
   UserPin      = true,
   Count        = 1
 })
+table.insert(ctrls, {
+  Name         = "DebugDisplays",
+  ControlType  = "Button",
+  ButtonType   = "Toggle",
+  PinStyle     = "Input",
+  UserPin      = true,
+  Count        = 1
+})
   -- Individual Devices --
 table.insert(ctrls, {
   Name         = "DeviceSelect",

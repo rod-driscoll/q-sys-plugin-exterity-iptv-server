@@ -60,6 +60,8 @@ elseif(CurrentPage == 'System') then
   layout["DebugTx"] = {PrettyName="Settings~DebugTx"                ,Position={604,296},Size={ 36, 16},FontSize=12,Style="Button"}
   table.insert(graphics,{Type="Text",Text="Debug Rx"                ,Position={460,312},Size={135, 16},FontSize=14,HTextAlign="Left"})
   layout["DebugRx"] = {PrettyName="Settings~DebugRx"                ,Position={604,312},Size={ 36, 16},FontSize=12,Style="Button"}
+  table.insert(graphics,{Type="Text",Text="Debug Displays"          ,Position={460,328},Size={135, 16},FontSize=14,HTextAlign="Left"})
+  layout["DebugDisplays"] = {PrettyName="Settings~DebugDisplays"    ,Position={604,328},Size={ 36, 16},FontSize=12,Style="Button"}
 
   table.insert(graphics,{Type="Text",Text="Device names"            ,Position={ 10,  5},Size={140, 16},FontSize=14,HTextAlign="Center"})
   layout["DeviceNames"] = {PrettyName="Settings~DeviceNames"        ,Position={ 10, 21},Size={140, 16},FontSize=12,Style="ComboBox"}
