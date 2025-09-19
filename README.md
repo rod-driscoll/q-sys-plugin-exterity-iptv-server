@@ -70,6 +70,15 @@ The files in "./testing/" are for dev only and may not be the most current code,
 ### Features of note
 
 The 'Custom controls' on the custom tab are power controls that will power a connected display if there is one connected, otherwise power the decoder. We really don't want to power the decoders off if we don't have to because they don't reliably load playlists or return to the previous content.
+To use a custom display module; give the display module a script name 'Display X' where 'X' is a number aligning with the decoder. e.g. If a display plugin has script access enabled and script ID of 'Display 1' then powering IPTV decoder 1 will send the power command to the display plugin instead of the decoder. When DisplayPowerOn is pressed this plugin will trigger the display script controls 'PowerOn' and 'PanelOn'. 'When DisplayPowerOff is pressed this plugin will trigger the display script control 'PanelOff' if it exists, otherwise it will trigger 'PowerOff, this is an attempt to avoid powering the displays completely off and causing the Vitec app to power down and not recover correctly.
+
+The Vitec Server does not allow connection from QSD in Emulation mode, when you try to emulate you will get a 403 'Forbidden'  response.
+
+Vitec has some really poor featues:
+- When a device is powered up it does not remember the previous IPTV channel so ends up with a green screen and the Vitec logo, this plugin attempts to detect this and recall the last known channel.
+- When a device is showing a playlist then there is no way to know if there is an IPTV channel playing within the playlist, so if you want to display and control TV channels then do not use playlists.
+- Vitec playlists and schedules do not support playing an audio or video file once then stopping so it is impossible to gracefully play a file then switch to the previous content on completion (e.g. playing a single announcement or commercial).
+- Vitec schedules are added inside playlists; there is no global scheduler, so it is very difficult to keep track of them. It is best to avoid using Vitec shcedules.
 
 ## References
 
