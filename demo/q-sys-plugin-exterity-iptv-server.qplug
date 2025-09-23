@@ -911,6 +911,7 @@ if Controls then
   -- dependencies
   -----------------------------------------------------------------------------------------------------------------------
   rapidjson = require("rapidjson")
+  helper = require("helpers")
   -----------------------------------------------------------------------------------------------------------------------
   -- Variables
   -----------------------------------------------------------------------------------------------------------------------
@@ -1029,71 +1030,6 @@ if Controls then
     Controls["DebugTx"].Boolean = DebugTx
     Controls["DebugRx"].Boolean = DebugRx
   end
-  
-  local helper = {}
-  helper.UpdateItems = function(data)  -- creates a string list, good for puttin ginto a text or combo box
-    local table_ = {}
-    --print('UpdateItems')
-    for k,v in pairs(data) do
-      local str_ = ""
-      if type(v) == "string" then
-        str_ = k..': '..v               -- 'status: online'
-      else
-        str_ = k..': Type.'..type(v)  -- 'status: Type.function'
-      end
-      --print(str_)
-      table.insert(table_, str_)
-    end
-    --print('-----------------------------------------------------')
-    return table_
-  end
-  
-  hleper.GetTableItemWithKey = function(table, pair)
-    local key_
-    local value_
-    for k,v in pairs(pair) do
-      key_ = k
-      value_ = pair[k]
-      --print('["'..key_..'"] = "'..value_..'"')
-    end
-      --print('looking for ["'..key_..'"] = "'..value_..'"" in', type(table), 'len', #table)
-  
-    for i,v in pairs(table) do
-      --print('... ["'..i..'"] = "'..v..'"')
-      --print('... ["'..v..'"]')
-      if i == key_ and v == value_ then
-        --print('found ["'..key_..'"] = "'..value_..'"')
-        return i,v
-      end
-    end
-  end
-  
-  helper.GetValueStringFromTable = function(data, str) -- e.g. str will be like 'id: xyz'
-    local str_ = ""                                 -- e.g. if data['id'] = 'abc'
-    local x = string.find(str, ': ')                -- e.g. return 'id: abc'
-    if x then
-      str_ = string.sub(str, 1, x-1)
-      if data[str_] then
-        if type(data[str_]) == 'string' then
-          str_ = str_..': '..data[str_]
-        else
-          str_ = str_..': '..type(data[str_])
-        end
-      else
-        str_ = str_..':'
-      end
-    end
-    return str_
-  end
-  
-  helper.GetChoicesItem = function(array, key) -- where .Choices[x] = 'id: abc', key == 'id'
-    for i,str in ipairs(array) do -- iterrate through Choices array
-      --print('searching ["'..i..'"] '..str)
-      local x,y = string.find(str, key..': ')
-      if x == 1 then return string.sub(str, y+1, -1) end -- 'abc'
-    end
-    return false
-  end
   -----------------------------------------------------------------------------------------------------------------------
   -- Device control functions
   -----------------------------------------------------------------------------------------------------------------------
@@ -1204,12 +1140,19 @@ if Controls then
         if DebugDisplays then print('SetDevicePower: cleared image for '..i) end
         if display_['PanelOff']~=nil then 
           command_ = 'PanelOff'
+        elseif display_['ScreenOff']~=nil then 
+          command_ = 'ScreenOff'
         elseif display_['PowerOff']~=nil then 
           command_ = 'PowerOff'
         end
       elseif command=='Display_on' then 
         if display_['PanelOn']~=nil then 
           command_ = 'PanelOn'
+          if display_['PowerStatus']~=nil and not display_['PowerStatus'].Boolean then 
+            command2_ = 'PowerOn'
+          end
+        elseif display_['ScreenOn']~=nil then 
+          command_ = 'ScreenOn'
           if display_['PowerStatus']~=nil and not display_['PowerStatus'].Boolean then 
             command2_ = 'PowerOn'
           end
@@ -1748,11 +1691,13 @@ if Controls then
       end   
       
       Controls['PowerOn'][i].EventHandler = function(ctl) -- power_on
-        local _, device_ = GetDeviceData(i)
+        if DebugDisplays then print('PowerOn['..i..'] event: '..tostring(ctl.Boolean)) end
+       local _, device_ = GetDeviceData(i)
         if device_~=nil then SetDevicePower(i, device_, 'Display_on') end
       end
       
       Controls['PowerToggle'][i].EventHandler = function(ctl) -- power_on
+        if DebugDisplays then print('PowerToggle['..i..'] event: '..tostring(ctl.Boolean)) end    
         --status_ = GetPowerAndChannel(data)
         local _, device_ = GetDeviceData(i)
         if device_~=nil then SetDevicePower(i, device_,  ctl.Boolean and 'Display_on' or 'Display_off') end
@@ -1810,49 +1755,30 @@ if Controls then
             Controls['DisplayStatus'][i].String = ctl.String
           end
         end
-  
-        Controls['DisplayPowerOn'][i].EventHandler = function(ctl) -- power_on
+        
+        local function SetDisplayPowerOn(i)
+          if DebugFunction then print('SetDisplayPowerOn('..i..')') end
           if displays[i]['PowerOn']~=nil then displays[i]['PowerOn']:Trigger() end
           if displays[i]['PanelOn']~=nil then displays[i]['PanelOn']:Trigger() end
+          if displays[i]['ScreenOn']~=nil then displays[i]['ScreenOn']:Trigger() end
         end
-        Controls['DisplayPowerOff'][i].EventHandler = function(ctl) -- power_on
-          if     displays[i]['PanelOn']~=nil then displays[i]['PanelOff']:Trigger()
-          elseif displays[i]['PowerOn']~=nil then displays[i]['PowerOff']:Trigger()
-          end
+        local function SetDisplayPowerOff(i) -- only blank the panel if supported
+          if DebugFunction then print('SetDisplayPowerOff('..i..')') end
+          if     displays[i]['PanelOff']~=nil then displays[i]['PanelOff']:Trigger()
+          elseif displays[i]['ScreenOff']~=nil then displays[i]['ScreenOff']:Trigger()
+          elseif displays[i]['PowerOff']~=nil then displays[i]['PowerOff']:Trigger()
+          end     
         end
+        Controls['DisplayPowerOn'][i].EventHandler  = function(ctl) SetDisplayPowerOn(i)  end -- power_on
+        Controls['DisplayPowerOff'][i].EventHandler = function(ctl) SetDisplayPowerOff(i) end -- power_off  
+        Controls['DisplayPowerToggle'][i].EventHandler = function(ctl)
+          if ctl.Boolean then SetDisplayPowerOn(i)
+          else SetDisplayPowerOff(i) end
+        end
+      end
+    end
+  end
   
-      end
-    end
-  end
-  -- -@param o1 any|table First object to compare
-  -- -@param o2 any|table Second object to compare
-  -- -@param ignore_mt boolean True to ignore metatables (a recursive function to tests tables inside tables)
-  helper.equals = function(o1, o2, ignore_mt)
-    if o1 == o2 then return true end
-    local o1Type = type(o1)
-    local o2Type = type(o2)
-    if o1Type ~= o2Type then return false end
-    if o1Type ~= 'table' then return false end
-    if not ignore_mt then
-      local mt1 = getmetatable(o1)
-      if mt1 and mt1.__eq then
-        --compare using built in method
-        return o1 == o2
-      end
-    end
-    local keySet = {}
-    for key1, value1 in pairs(o1) do
-      local value2 = o2[key1]
-      if value2 == nil or helper.equals(value1, value2, ignore_mt) == false then
-        return false
-      end
-      keySet[key1] = true
-    end
-    for key2, _ in pairs(o2) do
-      if not keySet[key2] then return false end
-    end
-    return true
-  end
   -----------------------------------------------------------------------------------------------------------------------
   -- Parse devices
   -----------------------------------------------------------------------------------------------------------------------
@@ -2466,7 +2392,7 @@ if Controls then
     SetupDebugPrint()
     if DebugFunction then 
       print("initialize() Called") 
-      --helper.GetVersion()
+      helper.GetVersion()
     end
     load_setup_event_handlers()
     load_tv_channel_images()
