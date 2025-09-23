@@ -2,7 +2,6 @@
 -- dependencies
 -----------------------------------------------------------------------------------------------------------------------
 rapidjson = require("rapidjson")
-helper = require("helpers")
 -----------------------------------------------------------------------------------------------------------------------
 -- Variables
 -----------------------------------------------------------------------------------------------------------------------
@@ -120,6 +119,71 @@ function SetupDebugPrint()
   Controls["DebugFunction"].Boolean = DebugFunction
   Controls["DebugTx"].Boolean = DebugTx
   Controls["DebugRx"].Boolean = DebugRx
+end
+
+local helper = {}
+helper.UpdateItems = function(data)  -- creates a string list, good for puttin ginto a text or combo box
+  local table_ = {}
+  --print('UpdateItems')
+  for k,v in pairs(data) do
+    local str_ = ""
+    if type(v) == "string" then
+      str_ = k..': '..v               -- 'status: online'
+    else
+      str_ = k..': Type.'..type(v)  -- 'status: Type.function'
+    end
+    --print(str_)
+    table.insert(table_, str_)
+  end
+  --print('-----------------------------------------------------')
+  return table_
+end
+
+hleper.GetTableItemWithKey = function(table, pair)
+  local key_
+  local value_
+  for k,v in pairs(pair) do
+    key_ = k
+    value_ = pair[k]
+    --print('["'..key_..'"] = "'..value_..'"')
+  end
+    --print('looking for ["'..key_..'"] = "'..value_..'"" in', type(table), 'len', #table)
+
+  for i,v in pairs(table) do
+    --print('... ["'..i..'"] = "'..v..'"')
+    --print('... ["'..v..'"]')
+    if i == key_ and v == value_ then
+      --print('found ["'..key_..'"] = "'..value_..'"')
+      return i,v
+    end
+  end
+end
+
+helper.GetValueStringFromTable = function(data, str) -- e.g. str will be like 'id: xyz'
+  local str_ = ""                                 -- e.g. if data['id'] = 'abc'
+  local x = string.find(str, ': ')                -- e.g. return 'id: abc'
+  if x then
+    str_ = string.sub(str, 1, x-1)
+    if data[str_] then
+      if type(data[str_]) == 'string' then
+        str_ = str_..': '..data[str_]
+      else
+        str_ = str_..': '..type(data[str_])
+      end
+    else
+      str_ = str_..':'
+    end
+  end
+  return str_
+end
+
+helper.GetChoicesItem = function(array, key) -- where .Choices[x] = 'id: abc', key == 'id'
+  for i,str in ipairs(array) do -- iterrate through Choices array
+    --print('searching ["'..i..'"] '..str)
+    local x,y = string.find(str, key..': ')
+    if x == 1 then return string.sub(str, y+1, -1) end -- 'abc'
+  end
+  return false
 end
 -----------------------------------------------------------------------------------------------------------------------
 -- Device control functions
@@ -851,7 +915,35 @@ function load_control_event_handlers()
     end
   end
 end
-
+-- -@param o1 any|table First object to compare
+-- -@param o2 any|table Second object to compare
+-- -@param ignore_mt boolean True to ignore metatables (a recursive function to tests tables inside tables)
+helper.equals = function(o1, o2, ignore_mt)
+  if o1 == o2 then return true end
+  local o1Type = type(o1)
+  local o2Type = type(o2)
+  if o1Type ~= o2Type then return false end
+  if o1Type ~= 'table' then return false end
+  if not ignore_mt then
+    local mt1 = getmetatable(o1)
+    if mt1 and mt1.__eq then
+      --compare using built in method
+      return o1 == o2
+    end
+  end
+  local keySet = {}
+  for key1, value1 in pairs(o1) do
+    local value2 = o2[key1]
+    if value2 == nil or helper.equals(value1, value2, ignore_mt) == false then
+      return false
+    end
+    keySet[key1] = true
+  end
+  for key2, _ in pairs(o2) do
+    if not keySet[key2] then return false end
+  end
+  return true
+end
 -----------------------------------------------------------------------------------------------------------------------
 -- Parse devices
 -----------------------------------------------------------------------------------------------------------------------
@@ -1465,7 +1557,7 @@ function initialize()
   SetupDebugPrint()
   if DebugFunction then 
     print("initialize() Called") 
-    helper.GetVersion()
+    --helper.GetVersion()
   end
   load_setup_event_handlers()
   load_tv_channel_images()
