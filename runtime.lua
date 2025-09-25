@@ -139,7 +139,7 @@ function GetPowerAndChannel(device) -- a single device
       if device.content~=nil then
         --TablePrint(device.content, 2)
         if device.content.channel~=nil and device.content.channel.name~=nil then
-          --print('channel:', device.content.channel.name)
+          print('channel:', device.content.channel.name)
           return_.channel = device.content.channel.name
           --if device.content.playlist~=nil then tv_chanel_playlist_id = device.content.playlist end
         end   
@@ -189,9 +189,9 @@ function GetPowerAndChannel(device) -- a single device
                 --if params_.channel.name then print('channel: '..params_.channel.name) end
                 --if params_ and params_.channel and type(params_.channel) .name then 
                 if params_~=nil and params_.channel then -- a channel command
-                  --print('type(params_.channel): '..type(params_.channel))
+                  print('type(params_.channel): '..type(params_.channel))
                   if type(params_.channel) == "table" and params_.channel.name then
-                    return_.channel = params_.channel.name 
+                    if return_.channel == '' then return_.channel = params_.channel.name end 
                     found_successful_job_ = true
                   end
                 elseif params_ and params_.manifest then -- a signage command
@@ -200,10 +200,13 @@ function GetPowerAndChannel(device) -- a single device
                 else
                   if type(params_) == "table" then TablePrint(params_.channel, 2) end
                 end
-              else --  type(params_) == "string"
+              elseif type(params_) == "string" then
+                if DebugFunction then print('job['..i..'], params: '..params_) end
                 return_.no_content = true -- probably an audio player
-                return_.channel = "" 
+                --return_.channel = "" 
                 --return_.signage = false
+              else--if type(params_) =='nil'
+                return_.no_content = true -- probably an audio player
               end
             end
           end
@@ -338,6 +341,8 @@ function UpdateDevice(i, device) -- device is a single device
       Controls['PowerOn'][i].Boolean = false
       Controls['PowerOff'][i].Boolean = false
       Controls['PowerToggle'][i].Boolean = false
+      Controls['CustomPowerOn'][i].Boolean = false
+      Controls['CustomPowerOff'][i].Boolean = false
       --Controls['ExternalDisplayConnected'][i].Boolean = false
       UpdateLogo('', i)
       UpdateDisplayModule(i, device)
@@ -398,13 +403,13 @@ function UpdateDevice(i, device) -- device is a single device
           --if DebugFunction then print('UpdateDevice: cleared image for '..i) end
         end
         
-        if string.len(status_.channel) > 0 and not status_.jobs_pending then -- channel exists, set feedback
+        if string.len(status_.channel) > 0 then --and not status_.jobs_pending then -- channel exists, set feedback
           if DebugFunction then print('channel not empty, power is on, no jobs pending') end
           if not (status_.playlist and #status_.playlist>0) then
             Controls['ChannelSelect'][i].String = status_.channel 
             Controls['CurrentContent'][i].String = status_.channel
             Controls['PowerOnChannel'][i].String = status_.channel
-            if status_.no_content_showing and device.status == 'online' then -- the player is showing the app icon and no logo, this happens when the app starts
+            if status_.no_content_showing and device.status == 'online' and not status_.jobs_pending then -- the player is showing the app icon and no logo, this happens when the app starts
               if DebugFunction then print("setting channel - because the system doesn't recall the previous channel on power up") end
               SetChannel(i, status_.channel) --Controls['ChannelSelect'][i]:Trigger()
             end              --tv_channel_logos
@@ -412,7 +417,7 @@ function UpdateDevice(i, device) -- device is a single device
             Controls['Logo'][i].Color = "#00FFFFFF" -- transparent
 
           end
-        else -- need to force it to a channel
+        elseif not status_.jobs_pending then -- need to force it to a channel
           if status_.is_tv_playlist and Controls['ChannelSelect'][i] and string.len(Controls['ChannelSelect'][i].String) > 0 then --it's on a blank channel, have to clear selector before forcing it
             if string.len(Controls['PowerOnChannel'][i].String) < 1 then -- the power on channel is blank
               Controls['PowerOnChannel'][i].String = Controls['ChannelSelect'][i].String -- give it a channel to return to in a moment
@@ -605,10 +610,10 @@ function UpdateDeviceNames(data)  -- data is an array of devices
 end
 
 function UpdateDisplayPowerStatus(i)
-  local power_ = false
-  local powerOff_ = false
-  if displays and displays[i] and displays[i].Status and displays[i].Status.Value==0 then
+  if displays and displays[i] then
     if DebugFunction then print("UpdateDisplayPowerStatus("..i..") for connected display") end
+    local power_ = false
+    local powerOff_ = false
     if displays[i]['PowerStatus'] and displays[i]['PanelStatus'] then
       power_    =     displays[i]['PowerStatus'].Boolean and     displays[i]['PanelStatus'].Boolean
       powerOff_ = not displays[i]['PowerStatus'].Boolean and not displays[i]['PanelStatus'].Boolean
@@ -623,30 +628,38 @@ function UpdateDisplayPowerStatus(i)
     Controls['DisplayPowerToggle'][i].Boolean = power_
     Controls['DisplayPowerOn'    ][i].Boolean = power_
     Controls['DisplayPowerOff'   ][i].Boolean = powerOff_
-  else -- if no display is online then use the player status
-    if DebugFunction then print("UpdateDisplayPowerStatus("..i..") for decoder with no connected display") end
-    local _, device_ = GetDeviceData(i)
-    if device_ and device_.content then 
-      --device_.content.standby=='Unknown' was standby in the one scenario it was witnessed, never witnessed it with any other string value
-      if(device_.content.standby~=nil and device_.content.standby==true) then 
-        power_ = false
-      elseif(device_.content.standby~=nil and device_.content.standby==false)
-        or (device_.content.channel and device_.content.channel~='')
-        or (device_.content.playlist and device_.content.playlist~='') then
-        power_ = true
-      end
+
+    if displays[i].Status and displays[i].Status.Value==0 then -- if there is an online connected display
+      Controls['CustomPowerFb'    ][i].Boolean = power
+      Controls['CustomPowerToggle'][i].Boolean = power_
+      Controls['CustomPowerOn'    ][i].Boolean = power_
+      Controls['CustomPowerOff'   ][i].Boolean = powerOff_
     end
   end
-  if DebugFunction then print("UpdateDisplayPowerStatus("..i..") PowerFb: "..tostring(power_)) end
 
-  Controls['PowerFb'    ][i].Boolean = power_
-  Controls['PowerToggle'][i].Boolean = power_
-  Controls['PowerOn'    ][i].Boolean = power_
-  Controls['PowerOff'   ][i].Boolean = not power_
-  Controls['CustomPowerFb'    ][i].Boolean = power_
-  Controls['CustomPowerToggle'][i].Boolean = power_
-  Controls['CustomPowerOn'    ][i].Boolean = power_
-  Controls['CustomPowerOff'   ][i].Boolean = not power_
+  local _, device_ = GetDeviceData(i)
+  if device_ and device_.content then 
+    --device_.content.standby=='Unknown' was standby in the one scenario it was witnessed, never witnessed it with any other string value
+    local power_ = false
+    if(device_.content.standby~=nil and device_.content.standby==true) then 
+      power_ = false
+    elseif(device_.content.standby~=nil and device_.content.standby==false)
+      or (device_.content.channel and device_.content.channel~='')
+      or (device_.content.playlist and device_.content.playlist~='') then
+      power_ = true
+    end
+    Controls['PowerFb'    ][i].Boolean = power_
+    Controls['PowerToggle'][i].Boolean = power_
+    Controls['PowerOn'    ][i].Boolean = power_
+    Controls['PowerOff'   ][i].Boolean = not power_
+
+    if not (displays and displays[i] and displays[i].Status and displays[i].Status.Value==0) then -- if there is no online display then use the status of the decoder
+      Controls['CustomPowerFb'    ][i].Boolean = power
+      Controls['CustomPowerToggle'][i].Boolean = power_
+      Controls['CustomPowerOn'    ][i].Boolean = power_
+      Controls['CustomPowerOff'   ][i].Boolean = not power_
+    end
+  end
 end
 
 local logoQueue = {}
@@ -802,6 +815,25 @@ function load_control_event_handlers()
       displays[i] = (#Component.GetControls(displays[i]))>0 and displays[i] or nil -- make it nil if it doesn't have any controls
     end
 
+    -- the external display modules
+    local function SetDisplayPowerOn(i)
+      if DebugFunction then print('SetDisplayPowerOn('..i..')') end
+      if displays[i] then
+        if displays[i]['PowerOn']~=nil then displays[i]['PowerOn']:Trigger() end
+        if displays[i]['PanelOn']~=nil then displays[i]['PanelOn']:Trigger() end
+        if displays[i]['ScreenOn']~=nil then displays[i]['ScreenOn']:Trigger() end
+      end
+    end
+    local function SetDisplayPowerOff(i) -- only blank the panel if supported
+      if DebugFunction then print('SetDisplayPowerOff('..i..')') end
+      if displays[i] then
+        if     displays[i]['PanelOff']~=nil then displays[i]['PanelOff']:Trigger()
+        elseif displays[i]['ScreenOff']~=nil then displays[i]['ScreenOff']:Trigger()
+        elseif displays[i]['PowerOff']~=nil then displays[i]['PowerOff']:Trigger()
+        end
+      end
+    end
+
     if displays[i] then
       if displays[i]['IPAddress']~=nil then
         Controls['DisplayIPAddress'][i].String = displays[i]['IPAddress'].String
@@ -846,25 +878,49 @@ function load_control_event_handlers()
           Controls['DisplayStatus'][i].String = ctl.String
         end
       end
-      
-      local function SetDisplayPowerOn(i)
-        if DebugFunction then print('SetDisplayPowerOn('..i..')') end
-        if displays[i]['PowerOn']~=nil then displays[i]['PowerOn']:Trigger() end
-        if displays[i]['PanelOn']~=nil then displays[i]['PanelOn']:Trigger() end
-        if displays[i]['ScreenOn']~=nil then displays[i]['ScreenOn']:Trigger() end
-      end
-      local function SetDisplayPowerOff(i) -- only blank the panel if supported
-        if DebugFunction then print('SetDisplayPowerOff('..i..')') end
-        if     displays[i]['PanelOff']~=nil then displays[i]['PanelOff']:Trigger()
-        elseif displays[i]['ScreenOff']~=nil then displays[i]['ScreenOff']:Trigger()
-        elseif displays[i]['PowerOff']~=nil then displays[i]['PowerOff']:Trigger()
-        end     
-      end
       Controls['DisplayPowerOn'][i].EventHandler  = function(ctl) SetDisplayPowerOn(i)  end -- power_on
       Controls['DisplayPowerOff'][i].EventHandler = function(ctl) SetDisplayPowerOff(i) end -- power_off  
       Controls['DisplayPowerToggle'][i].EventHandler = function(ctl)
-        if ctl.Boolean then SetDisplayPowerOn(i)
-        else SetDisplayPowerOff(i) end
+        if ctl.Boolean then 
+          SetDisplayPowerOn(i)
+        else 
+          SetDisplayPowerOff(i)
+        end
+      end
+    end
+    -- Custom is the display if it exists, else send the vitec command
+    Controls['CustomPowerOff'][i].EventHandler = function(ctl)
+      if DebugDisplays then print('CustomPowerOff['..i..'] event: '..tostring(ctl.Boolean)) end
+      if displays[i] then 
+        SetDisplayPowerOff(i)
+      else
+        local _, device_ = GetDeviceData(i)
+        if device_~=nil then SetDevicePower(i, device_, 'Display_off') end
+      end
+    end 
+
+    Controls['CustomPowerOn'][i].EventHandler = function(ctl) -- power_on
+      if DebugDisplays then print('CustomPowerOn['..i..'] event: '..tostring(ctl.Boolean)) end
+      if displays[i] then
+        SetDisplayPowerOn(i)
+      else
+        local _, device_ = GetDeviceData(i)
+        if device_~=nil then SetDevicePower(i, device_, 'Display_on') end
+      end
+    end
+
+    Controls['CustomPowerToggle'][i].EventHandler = function(ctl) -- power_on
+      if DebugDisplays then print('CustomPowerToggle['..i..'] event: '..tostring(ctl.Boolean)) end
+      if displays[i] then
+        if ctl.Boolean then 
+          SetDisplayPowerOn(i)
+        else 
+          SetDisplayPowerOff(i)
+        end
+      else
+        --status_ = GetPowerAndChannel(data)
+        local _, device_ = GetDeviceData(i)
+        if device_~=nil then SetDevicePower(i, device_,  ctl.Boolean and 'Display_on' or 'Display_off') end
       end
     end
   end

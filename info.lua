@@ -46,10 +46,14 @@
   -- update: Surrounded most debug lines with "if DebugFunction" to reduce debug noise
   -- update: Added DebugDisplays
   -- update: if the device type is a system on chip (app on the display) then send the IP address from the Vitec to the module, else use the module address
-
+-- 20250925 v1.0.7 Rod Driscoll<rod@theavitgroup.com.au>
+  -- fix: power toggle wasn't working
+  -- update: power just controls the decoder, if it is a system on chip then that will cause the TV to turn off, otherwise you need to use CustomPower or DisplayPower
+  -- update: more checking to detect a display in idle mode, to put it into the last known content. The Vitec API does not provide a status for idle so need to look at all previous jobs.
+  
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane
-  Version = "1.0.6",
+  Version = "1.0.7",
   Id = "exterity-iptv-server.plugin",
   Description = "Plugin controlling Exterity IPTV",
   ShowDebug = true,
