@@ -436,7 +436,7 @@ function UpdateDevice(i, device) -- device is a single device
               end
               Controls['ChannelSelect'][i].String = Controls['PowerOnChannel'][i].String -- force the Event
               Controls['CurrentContent'][i].String = Controls['PowerOnChannel'][i].String
-              SetChannel(i, status_.channel) --Controls['ChannelSelect'][i]:Trigger()
+              SetChannel(i, Controls['PowerOnChannel'][i].String) -- status_.channel is empty in this branch; use cached PowerOnChannel
             end
           elseif not status_.is_tv_playlist then
             if DebugFunction then print('not in TV channel playlist: '..status_.playlist..', clearing the current channels') end
