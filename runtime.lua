@@ -1297,32 +1297,25 @@ end
 -----------------------------------------------------------------------------------------------------------------------
 function QueryDevices()
   if DebugFunction then print('QueryDevices (total: '..#devices..', defined: '..#Controls['DeviceSelect']..')') end
-  GetRequest(Path.."/devices")  if DebugFunction then print('SyncComponents('..(remote_name or '')..')') end
+  GetRequest(Path.."/devices")
   for i=1, #devices do QueryDevicesQueue[i] = true end -- populate queue
 
-  local function QueryNexDevice()
-    --if DebugFunction then print('QueryNexDevice()') end
+  local function QueryNextDevice()
     local nextDeviceIsEmpty = true
-    if not QueryDevicesLock then
-      for i in pairs(QueryDevicesQueue) do -- look for components to be updated
-        QueryDevicesLock = i
-        nextDeviceIsEmpty = false
-        GetRequest(Path.."/devices/"..devices[i]['mac'])
-        QueryDevicesQueue[i] = nil
-        QueryDevicesLock = nil
-        break
-      end
-      if nextDeviceIsEmpty then 
-        if DebugFunction then print('QueryDevicesQueue is empty, stopping timer') end
-        QueryDevicesTimer:Stop()
-      end
-    else
-      if DebugFunction then print('SyncNexItem['..tostring(QueryDevicesLock)..'] is busy') end
+    for i in pairs(QueryDevicesQueue) do -- look for next queued device
+      nextDeviceIsEmpty = false
+      GetRequest(Path.."/devices/"..devices[i]['mac'])
+      QueryDevicesQueue[i] = nil
+      break
+    end
+    if nextDeviceIsEmpty then
+      if DebugFunction then print('QueryDevicesQueue is empty, stopping timer') end
+      QueryDevicesTimer:Stop()
     end
   end
 
   if not QueryDevicesTimer:IsRunning() then
-    QueryDevicesTimer.EventHandler = QueryNexDevice
+    QueryDevicesTimer.EventHandler = QueryNextDevice
     QueryDevicesTimer:Start(QueryDevicesTime)
   end
 end
@@ -1567,6 +1560,18 @@ local function load_setup_event_handlers()
   Controls.DebugTx.EventHandler = function(ctl) DebugTx = ctl.Boolean end
   Controls.DebugRx.EventHandler = function(ctl) DebugRx = ctl.Boolean end
   Controls.DebugDisplays.EventHandler = function(ctl) DebugDisplays = ctl.Boolean end
+  Controls.DebugSnapshot.EventHandler = function()
+    local ts_    = os.date('%H:%M:%S')
+    local count_ = 0
+    for k_, device_ in pairs(devices) do
+      count_ = count_ + 1
+      local ok_, json_ = pcall(rapidjson.encode, device_)
+      print(string.format('[IPTV-SNAP][%s] key=%s name=%s\n%s\n---',
+        ts_, tostring(k_), tostring(device_.name or device_.id or '?'),
+        ok_ and json_ or 'encode_error'))
+    end
+    print(string.format('[IPTV-SNAP][%s] SUMMARY %d devices in cache', ts_, count_))
+  end
 end
 -------------------------------------------------------------------------------
 -- Device functions
