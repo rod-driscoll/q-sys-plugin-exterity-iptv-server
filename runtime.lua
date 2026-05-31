@@ -15,6 +15,12 @@ local DebugFunction=false
 -- Timers, tables, and constants
 QueryTimer = Timer.New()
 LogoTimer = Timer.New()
+
+QueryDevicesTimer = Timer.New() -- create a delay between each device query command
+local QueryDevicesTime = 0.1 -- 0.1 adjust to how fast the system can handle processing
+local QueryDevicesQueue = {}
+local QueryDevicesLock = false
+
 --Timeout = Properties["Poll Interval"].Value + 10
 
 -- Device specific
@@ -198,7 +204,9 @@ function GetPowerAndChannel(device) -- a single device
                   return_.channel = "" 
                   --return_.signage = true
                 else
-                  if type(params_) == "table" then TablePrint(params_.channel, 2) end
+                  if type(params_) == "table" then
+                    --helper.TablePrint(params_.channel, 2) 
+                  end
                 end
               elseif type(params_) == "string" then
                 if DebugFunction then print('job['..i..'], params: '..params_) end
@@ -507,7 +515,7 @@ function AssignDevice(i, device) -- device is a single device
     Controls['DeviceSelect'][i].String = ''
     Controls['DeviceName'][i].String = ''
   end
-  UpdateDevice(i, device)     
+  UpdateDevice(i, device)
 end
 
 function CheckContent(device) -- device is a single device
@@ -1290,11 +1298,33 @@ end
 -----------------------------------------------------------------------------------------------------------------------
 function QueryDevices()
   if DebugFunction then print('QueryDevices (total: '..#devices..', defined: '..#Controls['DeviceSelect']..')') end
-  GetRequest(Path.."/devices")	
-  if #devices>0  then
-    for i=1, #devices do
-      GetRequest(Path.."/devices/"..devices[i]['mac'])
+  GetRequest(Path.."/devices")  if DebugFunction then print('SyncComponents('..(remote_name or '')..')') end
+  for i=1, #devices do QueryDevicesQueue[i] = true end -- populate queue
+
+  local function QueryNexDevice()
+    --if DebugFunction then print('QueryNexDevice()') end
+    local nextDeviceIsEmpty = true
+    if not QueryDevicesLock then
+      for i in pairs(QueryDevicesQueue) do -- look for components to be updated
+        QueryDevicesLock = i
+        nextDeviceIsEmpty = false
+        GetRequest(Path.."/devices/"..devices[i]['mac'])
+        QueryDevicesQueue[i] = nil
+        QueryDevicesLock = nil
+        break
+      end
+      if nextDeviceIsEmpty then 
+        if DebugFunction then print('QueryDevicesQueue is empty, stopping timer') end
+        QueryDevicesTimer:Stop()
+      end
+    else
+      if DebugFunction then print('SyncNexItem['..tostring(QueryDevicesLock)..'] is busy') end
     end
+  end
+
+  if not QueryDevicesTimer:IsRunning() then
+    QueryDevicesTimer.EventHandler = QueryNexDevice
+    QueryDevicesTimer:Start(QueryDevicesTime)
   end
 end
 
@@ -1390,10 +1420,17 @@ end
 
 -- Function reads response code, sets status and prints received data.
 function ResponseHandler(tbl, code, data, err, headers)
-  if DebugFunction and DebugRx then print("HTTP Response Code [" .. code .. '] '..(HTTP_CODES[code] or "")) end
+  local endpoint_ = (tbl and tbl.Url and tbl.Url:match('/api/public/control/(.*)')) or (tbl and tbl.Url) or 'unknown'
+  local method_   = (tbl and tbl.Method) or 'GET'
+  local ts_       = os.date('%H:%M:%S')
+  if DebugFunction and DebugRx then
+    print(string.format('[IPTV][%s][%s %s][%d %s]', ts_, method_, endpoint_, code, HTTP_CODES[code] or ''))
+  end
   if code == 200 then  -- Vaild response
     ReportStatus("OK")
-    if DebugRx then print("Rx: ", data) end
+    if DebugRx then
+      print(string.format('[IPTV][%s][%s %s][200]\n%s\n---', ts_, method_, endpoint_, data))
+    end
     --ResponseText.String = data
     if headers["Content-Type"]~=nil and headers["Content-Type"]:match('^image')~=nil then -- headers["Content-Type"]=="image/png"
       ParseImage(data)
