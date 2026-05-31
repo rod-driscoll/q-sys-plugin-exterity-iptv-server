@@ -19,7 +19,6 @@ LogoTimer = Timer.New()
 QueryDevicesTimer = Timer.New() -- create a delay between each device query command
 local QueryDevicesTime = 0.1 -- 0.1 adjust to how fast the system can handle processing
 local QueryDevicesQueue = {}
-local QueryDevicesLock = false
 
 --Timeout = Properties["Poll Interval"].Value + 10
 
@@ -1424,7 +1423,7 @@ function ResponseHandler(tbl, code, data, err, headers)
   local method_   = (tbl and tbl.Method) or 'GET'
   local ts_       = os.date('%H:%M:%S')
   if DebugFunction and DebugRx then
-    print(string.format('[IPTV][%s][%s %s][%d %s]', ts_, method_, endpoint_, code, HTTP_CODES[code] or ''))
+    print(string.format('[IPTV][%s][%s %s][%g %s]', ts_, method_, endpoint_, code, HTTP_CODES[code] or ''))
   end
   if code == 200 then  -- Vaild response
     ReportStatus("OK")
