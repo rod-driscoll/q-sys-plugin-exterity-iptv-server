@@ -175,6 +175,14 @@ table.insert(ctrls, {
   Count        = 1
 })
 table.insert(ctrls, {
+  Name         = "DebugSnapshot",
+  ControlType  = "Button",
+  ButtonType   = "Trigger",
+  PinStyle     = "Input",
+  UserPin      = true,
+  Count        = 1
+})
+table.insert(ctrls, {
   Name         = "DebugDisplays",
   ControlType  = "Button",
   ButtonType   = "Toggle",
