@@ -171,7 +171,7 @@ elseif CurrentPage == 'Decoder list' then
     x=x+w.Number -- start after the number column
     for _,v in ipairs(columns_) do
       local tbl_ = {}
-      for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
+      for i1,v1 in pairs(v.Cell) do tbl_[i1]=v1 end
       tbl_.PrettyName = "Device "..i.."~"..v.Id
       tbl_.Position={x,y}
       tbl_.Size={w[v.Cell.Style],h}
@@ -217,7 +217,7 @@ elseif CurrentPage == 'Display list' then
     x=x+w.Number -- start after the number column
     for _,v in ipairs(columns_) do
       local tbl_ = {}
-      for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
+      for i1,v1 in pairs(v.Cell) do tbl_[i1]=v1 end
       tbl_.PrettyName = "Display "..i.."~"..v.Id
       tbl_.Position={x,y}
       tbl_.Size={w[v.Cell.Style],h}
@@ -260,7 +260,7 @@ elseif CurrentPage == 'Custom list' then
     x=x+w.Number -- start after the number column
     for _,v in ipairs(columns_) do
       local tbl_ = {}
-      for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
+      for i1,v1 in pairs(v.Cell) do tbl_[i1]=v1 end
       tbl_.PrettyName = "Custom "..i.."~"..v.Id
       tbl_.Position={x,y}
       tbl_.Size={w[v.Cell.Style],h}

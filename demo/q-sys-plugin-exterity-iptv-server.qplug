@@ -47,11 +47,12 @@
   -- update: Surrounded most debug lines with "if DebugFunction" to reduce debug noise
   -- update: Added DebugDisplays
   -- update: if the device type is a system on chip (app on the display) then send the IP address from the Vitec to the module, else use the module address
--- 20250925 v1.0.7 Rod Driscoll<rod@theavitgroup.com.au>
+-- 20251124 v1.0.7 Rod Driscoll<rod@theavitgroup.com.au>
   -- fix: power toggle wasn't working
   -- update: power just controls the decoder, if it is a system on chip then that will cause the TV to turn off, otherwise you need to use CustomPower or DisplayPower
   -- update: more checking to detect a display in idle mode, to put it into the last known content. The Vitec API does not provide a status for idle so need to look at all previous jobs.
-  
+  -- update: fixed combo boxes on Decoder list page that were apearing as string controls
+
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane
   Version = "1.0.7",
@@ -803,7 +804,7 @@ function GetControlLayout(props)
       x=x+w.Number -- start after the number column
       for _,v in ipairs(columns_) do
         local tbl_ = {}
-        for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
+        for i1,v1 in pairs(v.Cell) do tbl_[i1]=v1 end
         tbl_.PrettyName = "Device "..i.."~"..v.Id
         tbl_.Position={x,y}
         tbl_.Size={w[v.Cell.Style],h}
@@ -849,7 +850,7 @@ function GetControlLayout(props)
       x=x+w.Number -- start after the number column
       for _,v in ipairs(columns_) do
         local tbl_ = {}
-        for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
+        for i1,v1 in pairs(v.Cell) do tbl_[i1]=v1 end
         tbl_.PrettyName = "Display "..i.."~"..v.Id
         tbl_.Position={x,y}
         tbl_.Size={w[v.Cell.Style],h}
@@ -892,7 +893,7 @@ function GetControlLayout(props)
       x=x+w.Number -- start after the number column
       for _,v in ipairs(columns_) do
         local tbl_ = {}
-        for i1,v1 in pairs(v.Cell) do tbl_[i1]=tbl_[v1] end
+        for i1,v1 in pairs(v.Cell) do tbl_[i1]=v1 end
         tbl_.PrettyName = "Custom "..i.."~"..v.Id
         tbl_.Position={x,y}
         tbl_.Size={w[v.Cell.Style],h}
@@ -928,6 +929,11 @@ if Controls then
   -- Timers, tables, and constants
   QueryTimer = Timer.New()
   LogoTimer = Timer.New()
+  
+  QueryDevicesTimer = Timer.New() -- create a delay between each device query command
+  local QueryDevicesTime = 0.1 -- 0.1 adjust to how fast the system can handle processing
+  local QueryDevicesQueue = {}
+  
   --Timeout = Properties["Poll Interval"].Value + 10
   
   -- Device specific
@@ -1111,7 +1117,9 @@ if Controls then
                     return_.channel = "" 
                     --return_.signage = true
                   else
-                    if type(params_) == "table" then TablePrint(params_.channel, 2) end
+                    if type(params_) == "table" then
+                      --helper.TablePrint(params_.channel, 2) 
+                    end
                   end
                 elseif type(params_) == "string" then
                   if DebugFunction then print('job['..i..'], params: '..params_) end
@@ -1420,7 +1428,7 @@ if Controls then
       Controls['DeviceSelect'][i].String = ''
       Controls['DeviceName'][i].String = ''
     end
-    UpdateDevice(i, device)     
+    UpdateDevice(i, device)
   end
   
   function CheckContent(device) -- device is a single device
@@ -2203,11 +2211,26 @@ if Controls then
   -----------------------------------------------------------------------------------------------------------------------
   function QueryDevices()
     if DebugFunction then print('QueryDevices (total: '..#devices..', defined: '..#Controls['DeviceSelect']..')') end
-    GetRequest(Path.."/devices")	
-    if #devices>0  then
-      for i=1, #devices do
+    GetRequest(Path.."/devices")
+    for i=1, #devices do QueryDevicesQueue[i] = true end -- populate queue
+
+    local function QueryNextDevice()
+      local nextDeviceIsEmpty = true
+      for i in pairs(QueryDevicesQueue) do -- look for next queued device
+        nextDeviceIsEmpty = false
         GetRequest(Path.."/devices/"..devices[i]['mac'])
+        QueryDevicesQueue[i] = nil
+        break
       end
+      if nextDeviceIsEmpty then
+        if DebugFunction then print('QueryDevicesQueue is empty, stopping timer') end
+        QueryDevicesTimer:Stop()
+      end
+    end
+
+    if not QueryDevicesTimer:IsRunning() then
+      QueryDevicesTimer.EventHandler = QueryNextDevice
+      QueryDevicesTimer:Start(QueryDevicesTime)
     end
   end
   
