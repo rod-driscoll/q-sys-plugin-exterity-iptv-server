@@ -44,3 +44,8 @@ luac.out
 /demo/logos/*.svg
 /demo/logos/*.jpg
 
+# logs
+/logs
+
+# Claude Code local memory
+.claude/

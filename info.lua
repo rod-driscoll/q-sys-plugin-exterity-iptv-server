@@ -46,19 +46,25 @@
   -- update: Surrounded most debug lines with "if DebugFunction" to reduce debug noise
   -- update: Added DebugDisplays
   -- update: if the device type is a system on chip (app on the display) then send the IP address from the Vitec to the module, else use the module address
--- 20251124 v1.0.7 Rod Driscoll<rod@theavitgroup.com.au>
+-- 20251124 v1.0.1.0 Rod Driscoll<rod@theavitgroup.com.au>
   -- fix: power toggle wasn't working
   -- update: power just controls the decoder, if it is a system on chip then that will cause the TV to turn off, otherwise you need to use CustomPower or DisplayPower
   -- update: more checking to detect a display in idle mode, to put it into the last known content. The Vitec API does not provide a status for idle so need to look at all previous jobs.
   -- update: fixed combo boxes on Decoder list page that were apearing as string controls
+-- 20260615 v1.0.8 Rod Driscoll<rod@theavitgroup.com.au>
+  -- fix: recalling a channel at power on wasn't always working, added some extra checking of the player log to try to detect the last channel played before the player was powered off or went idle
+  -- update: added a debug option to show the debug print property, and added some extra debug prints for troubleshooting 
+
+BuildVersion = "1.0.8.0" -- updated by the compiler
 
 PluginInfo = {
   Name = "Exterity~IPTV Server", -- The tilde here indicates folder structure in the Shematic Elements pane
-  Version = "1.0.7",
+  Version = BuildVersion,
   Id = "exterity-iptv-server.plugin",
   Description = "Plugin controlling Exterity IPTV",
+  Author = "Rod Driscoll<rod@theavitgroup.com.au>",
   ShowDebug = true,
-  Author = "Rod Driscoll",
+  Manufacturer = "Vitec", -- Exterity has been renamed to Vitec but the plugin is still called Exterity IPTV Server for recognisability
 } 
 -- the below are items that were part of plugin.lua but moved here so that plugin.lua would never need to be edited
 PrettyName = "Exterity IPTV Server " .. PluginInfo.Version
